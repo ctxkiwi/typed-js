@@ -28,6 +28,10 @@ func removeElement = function(object el, aMessage msg) void {
         // Note:
         alert("..."); // Will fail unless you use: def func alert (string) void
     }
+
+    #if debug eq 1
+    console.log("An element was deleted")
+    #endif
 }
 
 object myButton = document.getElementById("my-button");
@@ -39,4 +43,8 @@ aMessage msg = {
 removeElement(myButton, msg);
 
 include "./window-ready.tjs"
+```
+
+```
+tjs compile src/main.tjs lib/main.js --vars "env=development|debug=1"
 ```
