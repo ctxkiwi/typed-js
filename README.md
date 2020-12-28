@@ -19,7 +19,6 @@ Struct aMessage {
     string message
 }
 
-object myButton = document.getElementById("my-button");
 func removeElement = function(object el, aMessage msg) void {
 
     el.parentNode.removeChild(el);
@@ -30,6 +29,8 @@ func removeElement = function(object el, aMessage msg) void {
         alert("..."); // Will fail unless you use: def func alert (string) void
     }
 }
+
+object myButton = document.getElementById("my-button");
 
 aMessage msg = {
     message: "Element has been deleted"
