@@ -8,12 +8,12 @@ def object window;
 
 // Macros
 #if env in development staging
-include "./libs/vue.js"
+include "./libs/vue.js" // Include plain .js code (no type checking)
 #else
 include "./libs/vue.min.js"
 #endif
 
-include "./globals.tjs" // Includes other .tjs file
+include "./globals.tjs" // Include other .tjs file
 
 Struct aMessage {
     string message
