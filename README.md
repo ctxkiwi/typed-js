@@ -6,7 +6,13 @@
 ```js
 def object window;
 
+// Macros
+#if env in development staging
 include "./libs/vue.js"
+#else
+include "./libs/vue.min.js"
+#endif
+
 include "./globals.tjs" // Includes other .tjs file
 
 object myButton = document.getElementById("my-button");
