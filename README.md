@@ -15,19 +15,27 @@ include "./libs/vue.min.js"
 
 include "./globals.tjs" // Includes other .tjs file
 
+Struct aMessage {
+    string message
+}
+
 object myButton = document.getElementById("my-button");
-func removeElement = function(object el, bool showMessage) void {
+func removeElement = function(object el, aMessage msg) void {
 
     el.parentNode.removeChild(el);
 
     if(showMessage){
-        window.alert("Element has been deleted");
+        window.alert(msg.message);
         // Note:
         alert("..."); // Will fail unless you use: def func alert (string) void
     }
 }
 
-removeElement(myButton, true);
+aMessage msg = {
+    message: "Element has been deleted"
+};
+
+removeElement(myButton, msg);
 
 include "./window-ready.tjs"
 ```
