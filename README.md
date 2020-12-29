@@ -6,6 +6,9 @@
 ```js
 def object window;
 def object document;
+def object console;
+def object Object;
+def object Array;
 
 // Macros
 #if env in development staging
@@ -20,11 +23,11 @@ struct aMessage {
     string message
 }
 
-func removeElement = function(object el, aMessage msg) void {
+func removeElement = function(object el, aMessage|null msg) void {
 
     el.parentNode.removeChild(el);
 
-    if(showMessage){
+    if(msg){
         window.alert(msg.message);
         // Note:
         alert("..."); // Will fail unless you use: def func alert (string) void
@@ -33,7 +36,7 @@ func removeElement = function(object el, aMessage msg) void {
     #if debug eq 1
     console.log("An element was deleted")
     #endif
-}
+};
 
 object myButton = document.getElementById("my-button");
 
