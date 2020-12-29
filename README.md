@@ -5,6 +5,7 @@
 
 ```js
 def object window;
+def object document;
 
 // Macros
 #if env in development staging
@@ -15,7 +16,7 @@ include "./libs/vue.min.js"
 
 include "./globals.tjs" // Include other .tjs file
 
-Struct aMessage {
+struct aMessage {
     string message
 }
 
