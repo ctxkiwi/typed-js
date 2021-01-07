@@ -5,8 +5,6 @@
 
 ```js
 
-namespace App;
-
 struct App {
     loading: bool
     storage: object<string> // { key: string-value }
@@ -17,10 +15,9 @@ extend struct window { // by default tjs creates a "window" struct, you can exte
     app: App
 };
 
-// Macros
 include "./globals.tjs" // Include other .tjs file (type checked)
 include "./libs/vue.js" // Include plain .js code (no type checking)
-include "./libs/vue-structs.tjs" // tjs must know the structs from Vue.. so either vue provides this via their github, but most likely you'll have to make it yourself
+include "./libs/vue-definitions.tjs" // tjs must know the structs from Vue.. so either vue provides this via their github, but most likely you'll have to make it yourself
 
 struct aMessage {
     string message
@@ -51,8 +48,9 @@ removeElement(myButton, msg);
 
 include "./window-ready.tjs"
 
-export structs App
-export vars msg
+// In case u want to export struct & variable definitions, so others can use it in their code
+export structs App aMessage
+export vars msg // results in "define aMessage msg;"
 ```
 
 ```
