@@ -6,7 +6,7 @@
 ```jsx
 
 import "./libs/vue.js" // Include plain .js code (no type checking)
-import Vue Component:VueComponent "./libs/vue-defs.tjs" // Import Vue & Component struct
+import Vue Component:VueComponent from "./libs/vue-defs.tjs" // Import Vue & Component struct
 // use VueComponent as alias for Component incase we already have a struct named Component
 
 import "./libs/vue-router.js"
