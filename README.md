@@ -1,17 +1,24 @@
 
 # Typed-js (WIP)
 
-## Example
+## Full feature list
 
 ```jsx
 
-import "./libs/vue.js" // Include plain .js code (no type checking)
-import Vue Component:VueComponent from "./libs/vue-defs.tjs" // Import Vue & Component struct
-// use VueComponent as alias for Component incase we already have a struct named Component
+include "./libs/vue.js" // Include plain .js code (no type checking)
+include "./libs/vue-defs.tjs" // Import structs from Vue
 
-import "./libs/vue-router.js"
-import Router from "./libs/vue-router-defs.tjs" pass { VueComponent:Component }
-// Because VueRouter is dependent on Component from the Vue Package, we pass it through
+include "./libs/vue-router.js"
+include "./libs/vue-router-defs.tjs"
+
+import Vue Component:VueComponent from Vue // Load structs, load Vue as Vue & Component as VueComponent
+import Router from VueRouter
+
+include "./libs/jQuery1.0.tjs"
+include "./libs/jQuery2.0.tjs" as jQuery2 // jQuery namespace already exists, rename
+include "./libs/jqeury-ajax-lib.tjs" as AjaxLib alias jQuery:jQuery2 // make it use jQuery2 when it imports from jQuery
+
+import Ajax from AjaxLib
 
 import "./some-structs.tjs" // Include other .tjs files (type checked)
 
@@ -63,8 +70,13 @@ include "./window-ready.tjs"
 
 // exporting has no real function except for when u want to share your own structs with others
 // by using: tjs compile src/main.tjs dist/my-package.js --export dest/my-package-defs.tjs
+export namespace MyPlugin // When someone includes your export file, it will store the structs under this name (optional)
 export structs App aMessage VueComponent:Component // Rename VueComponent to Component in our export
 export vars msg // results in "define aMessage msg;"
+
+// Then someone else can do
+include "./libs/my-plugin-defs.tjs"
+import aMessage from MyPlugin
 ```
 
 ```
