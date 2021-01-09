@@ -40,7 +40,7 @@ func removeElement = function(Element el, aMessage|null msg) void {
     if(msg){
         window.alert(msg.message);
         // Note:
-        alert("..."); // Will fail unless you use: def func alert (string) void
+        alert("..."); // Will fail unless you use: define func alert (string) void
     }
 
     // Macros
