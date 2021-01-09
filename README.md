@@ -61,7 +61,7 @@ removeElement(myButton, msg);
 // Store a string into a variable, the word "HMTL" is just for the IDE to know it's HTML
 #string:html myTemplate
 <div>Hello world!</div>
-#end // result in var myTemplate = "<div>Hello world!</div>"; 
+#end // results into: string myTemplate = "<div>Hello world!</div>"; 
 
 include "./window-ready.tjs"
 
