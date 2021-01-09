@@ -3,7 +3,7 @@
 
 ## Example
 
-```js
+```jsx
 
 include "./libs/vue.js" // Include plain .js code (no type checking)
 include "./libs/vue-defs.tjs" { // Include the tjs definitions for Vue
@@ -58,6 +58,11 @@ aMessage msg = {
 
 removeElement(myButton, msg);
 
+// Store a string into a variable, the word "HMTL" is just for the IDE to know it's HTML
+#STRING:HTML myTemplate
+<div>Hello world!</div>
+#ENDSTRING // result in var myTemplate = "...content...";
+
 include "./window-ready.tjs"
 
 // In case u want to export struct & variable definitions, so others can use it in their code
@@ -66,7 +71,7 @@ export vars msg // results in "define aMessage msg;"
 ```
 
 ```
-tjs compile src/main.tjs lib/main.js --vars "env=development|debug=1"
+tjs compile src/main.tjs dest/main.js --vars "env=development|debug=1"
 ```
 
 ## Rules
