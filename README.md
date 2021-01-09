@@ -12,7 +12,7 @@ include "./libs/vue-defs.tjs" { // Include the tjs definitions for Vue
     Node: VueNode
 }
 
-include "./libs/vue-router.js" // Include plain .js code (no type checking)
+include "./libs/vue-router.js"
 include "./libs/vue-router-defs.tjs" {
     Component: VueComponent // tell it to use VueComponent when looking for the struct Component
 }
