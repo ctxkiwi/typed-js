@@ -5,25 +5,35 @@
 
 ```js
 
+include "./libs/vue.js" // Include plain .js code (no type checking)
+include "./libs/vue-defs.tjs" { // Include the tjs definitions for Vue
+    // Optional: Rename a struct in case there is already a struct named Component in your code or other library
+    Component: VueComponent
+    Node: VueNode
+}
+
+include "./libs/vue-router.js" // Include plain .js code (no type checking)
+include "./libs/vue-router-defs.tjs" {
+    Component: VueComponent // tell it to use VueComponent when looking for the struct Component
+}
+
+include "./globals.tjs" // Include other .tjs files
+
 struct App {
     loading: bool
     storage: object<string> // { key: string-value }
     request_queue: array<Request>
 };
 
-extend struct window { // by default tjs creates a "window" struct, you can extend it like this
+extend struct Window { // by default tjs creates a "Window" struct, you can extend it like this
     app: App
 };
-
-include "./globals.tjs" // Include other .tjs file (type checked)
-include "./libs/vue.js" // Include plain .js code (no type checking)
-include "./libs/vue-definitions.tjs" // tjs must know the structs from Vue.. so either vue provides this via their github, but most likely you'll have to make it yourself
 
 struct aMessage {
     string message
 }
 
-func removeElement = function(object el, aMessage|null msg) void {
+func removeElement = function(Element el, aMessage|null msg) void {
 
     el.parentNode.removeChild(el);
 
@@ -33,11 +43,13 @@ func removeElement = function(object el, aMessage|null msg) void {
         alert("..."); // Will fail unless you use: def func alert (string) void
     }
 
+    // Macros
     #if debug eq 1
     console.log("An element was deleted")
     #endif
 };
 
+// Element is one of the default structs provided by tjs and follows the definitions found on the MDN website
 Element myButton = document.getElementById("my-button");
 
 aMessage msg = {
@@ -49,7 +61,7 @@ removeElement(myButton, msg);
 include "./window-ready.tjs"
 
 // In case u want to export struct & variable definitions, so others can use it in their code
-export structs App aMessage
+export structs App aMessage VueComponent|Component // Rename VueComponent to Component in our export
 export vars msg // results in "define aMessage msg;"
 ```
 
