@@ -5,19 +5,15 @@
 
 ```jsx
 
-include "./libs/vue.js" // Include plain .js code (no type checking)
-include "./libs/vue-defs.tjs" { // Include the tjs definitions for Vue
-    // Optional: Rename a struct in case there is already a struct named Component in your code or other library
-    Component: VueComponent
-    Node: VueNode
-}
+import "./libs/vue.js" // Include plain .js code (no type checking)
+import Vue Component:VueComponent "./libs/vue-defs.tjs" // Import Vue & Component struct
+// use VueComponent as alias for Component incase we already have a struct named Component
 
-include "./libs/vue-router.js"
-include "./libs/vue-router-defs.tjs" {
-    Component: VueComponent // tell it to use VueComponent when looking for the struct Component
-}
+import "./libs/vue-router.js"
+import Router from "./libs/vue-router-defs.tjs" pass { VueComponent:Component }
+// Because VueRouter is dependent on Component from the Vue Package, we pass it through
 
-include "./globals.tjs" // Include other .tjs files
+import "./some-structs.tjs" // Include other .tjs files (type checked)
 
 struct App {
     loading: bool
@@ -33,7 +29,7 @@ struct aMessage {
     string message
 }
 
-func removeElement = function(Element el, aMessage|null msg) void {
+func removeElement = function(Element el, aMessage? msg) void {
 
     el.parentNode.removeChild(el);
 
@@ -65,8 +61,9 @@ removeElement(myButton, msg);
 
 include "./window-ready.tjs"
 
-// In case u want to export struct & variable definitions, so others can use it in their code
-export structs App aMessage VueComponent|Component // Rename VueComponent to Component in our export
+// exporting has no real function except for when u want to share your own structs with others
+// by using: tjs compile src/main.tjs dist/my-package.js --export dest/my-package-defs.tjs
+export structs App aMessage VueComponent:Component // Rename VueComponent to Component in our export
 export vars msg // results in "define aMessage msg;"
 ```
 
