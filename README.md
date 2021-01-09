@@ -46,7 +46,7 @@ func removeElement = function(Element el, aMessage|null msg) void {
     // Macros
     #if debug eq 1
     console.log("An element was deleted")
-    #endif
+    #end
 };
 
 // Element is one of the default structs provided by tjs and follows the definitions found on the MDN website
@@ -59,9 +59,9 @@ aMessage msg = {
 removeElement(myButton, msg);
 
 // Store a string into a variable, the word "HMTL" is just for the IDE to know it's HTML
-#STRING:HTML myTemplate
+#string:html myTemplate
 <div>Hello world!</div>
-#ENDSTRING // result in var myTemplate = "...content...";
+#end // result in var myTemplate = "...content...";
 
 include "./window-ready.tjs"
 
