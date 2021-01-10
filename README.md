@@ -190,7 +190,7 @@ import Vue from Vue;
 <div>{{ message }} <world></world></div>
 #end
 
-var app = new Vue({
+Vue app = new Vue({
     el: '#app',
     template: mytemplate,
     data: {
