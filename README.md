@@ -138,7 +138,7 @@ tjs compile src/main.tjs dest/main.js --vars "env=development|debug=1"
 ## Example for a package
 
 ```jsx
-include "./libs/vue.js"
+include "./libs/vue-defs.tjs"
 
 import Component from Vue;
 
@@ -173,6 +173,35 @@ class Router {
 
 export namespace VueRouter
 export types Route Router
+```
+
+## Example for a website
+
+```jsx
+include "./libs/vue.js"
+include "./libs/vue-defs.tjs"
+
+import Vue from Vue;
+
+#string:html mytemplate
+<div>world!</div>
+#end
+
+Vue.component('world', {
+    template: mytemplate
+});
+
+#string:html mytemplate
+<div>{{ message }} <world></world></div>
+#end
+
+var app = new Vue({
+    el: '#app',
+    template: mytemplate,
+    data: {
+        message: 'Hello'
+    }
+});
 ```
 
 ## Rules
