@@ -135,6 +135,46 @@ alert(msg.message);
 tjs compile src/main.tjs dest/main.js --vars "env=development|debug=1"
 ```
 
+## Example for a package
+
+```jsx
+include "./libs/vue.js"
+
+import Component from Vue;
+
+class Route {
+    path: string
+    component: Component
+
+    constructor: func (string path, Component c){
+        this.path = path;
+        this.component = c;
+    }
+}
+
+class Router {
+    routes: array<Route>
+
+    addRoute: func (string path, Component c) {
+        var r = new Route(path, c);
+        this.routes.push(r);
+    }
+
+    match: func(string path) Route? {
+        for(var k in this.routes){
+            Route r = this.routes[k];
+            if (r.path == path) {
+                return r;
+            }
+        }
+        return null;
+    }
+}
+
+export namespace VueRouter
+export types Route Router
+```
+
 ## Rules
 
 - No union types, types of objects cannot be checked on runtime, so because u cant garantee a type, your code becomes unpredictable.
