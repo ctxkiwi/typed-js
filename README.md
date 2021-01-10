@@ -178,18 +178,13 @@ export types Route Router
 ## Example for a website
 
 ```jsx
+// main.tjs
 include "./libs/vue.js"
 include "./libs/vue-defs.tjs"
 
+include "./components/world.tjs"
+
 import Vue from Vue;
-
-#string:html mytemplate
-<div>world!</div>
-#end
-
-Vue.component('world', {
-    template: mytemplate
-});
 
 #string:html mytemplate
 <div>{{ message }} <world></world></div>
@@ -201,6 +196,17 @@ var app = new Vue({
     data: {
         message: 'Hello'
     }
+});
+
+// components/world.tjs
+import Vue from Vue;
+
+#string:html mytemplate
+<div>world!</div>
+#end
+
+Vue.component('world', {
+    template: mytemplate
 });
 ```
 
