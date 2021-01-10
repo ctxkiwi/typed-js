@@ -75,7 +75,28 @@ func (c Compile) handleNextWord() {
 
 		break;
 	}
-	c.throwAtLine("Test")
+
+	if string(word[0]) == "#" {
+		c.handleMacro(word)
+		return
+	} 
+
+	if word == "struct" || word == "local" {
+		c.handleStruct(word == "local")
+		return
+	}
+
+	if word == "include" {
+		c.handleInclude()
+		return
+	}
+
+	if word == "import" {
+		c.handleImport()
+		return
+	}
+
+	c.throwAtLine("Unknown token: " + word)
 }
 
 func (c Compile) throwAtLine (msg string) {
