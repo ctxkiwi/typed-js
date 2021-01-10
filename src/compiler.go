@@ -9,9 +9,14 @@ import(
 
 type Compile struct {
 	name string
+
 	index int
 	maxIndex int
 	line int
+
+	scopes []Scope
+	scopeIndex int
+
 	code []byte
 	result string
 }
@@ -26,12 +31,18 @@ func compileFile(file string) string{
 
 	c := Compile {
 		name: file,
+
 		index: 0,
 		maxIndex: len(code) - 1,
 		line: 1,
+
+		scopeIndex: 0,
+
 		code: code,
 		result: "",
 	}
+
+	c.scopes = append(c.scopes, Scope{})
 
 	return c.compile()
 }

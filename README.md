@@ -5,24 +5,12 @@
 
 ```jsx
 
-include "./libs/vue.js" // Include plain .js code (no type checking)
-include "./libs/vue-defs.tjs" // include structs from Vue (just an example, this file doesnt exists)
-
+// Include plain javascript (no type checking)
+include "./libs/vue.js"
 include "./libs/vue-router.js"
-include "./libs/vue-router-defs.tjs"
 
-import Vue Component:VueComponent from Vue // Load structs, load Vue as Vue & Component as VueComponent
-import Router from VueRouter
-
-Router myRouter;
-
-include "./libs/jQuery1.0.tjs"
-include "./libs/jQuery2.0.tjs" as jQuery2 // jQuery namespace already exists, rename
-include "./libs/jqeury-ajax-lib.tjs" as AjaxLib alias jQuery:jQuery2 // make it use jQuery2 when it imports from jQuery
-
-import Ajax from AjaxLib
-
-import "./some-structs.tjs" // Include other .tjs files (type checked)
+import Vue Component:VueComponent from "./libs/vue.tjs" // include structs, but give Component a new name 
+import Router from VueRouter // alternative: link VueRouter to a file in the typedjs.json config 
 
 struct App {
     loading: bool = false // default: false (optional)
@@ -119,16 +107,20 @@ include "./window-ready.tjs"
 
 // exporting has no real function except for when u want to share your own structs/classes/functions/... with others
 // by using: tjs compile src/main.tjs dist/my-package.js --export dest/my-package-defs.tjs
-export namespace MyPlugin // When someone includes your export file, it will store the structs under this name (optional)
 // Export classes & structs
 // Rename VueComponent to Component in our export
 export types App aMessage VueComponent:Component
 export values msg // results in "define aMessage msg;"
+// If your package is based on another package, you may want to import the components from that package
+// Instead of exporting them yourself
+// This reduces code and makes sure that there are no version problems
+// Because you might export structs from jQuery2.0, but the user of your package might have included jQuery1.6
+export imports {
+    Component Vue from Vue // import Component & Vue from Vue
+}
 
 // Then someone else can do
-include "./libs/my-plugin-defs.tjs"
-import aMessage from MyPlugin
-alert(msg.message);
+import someClass orSomeStruct from "./libs/my-plugin.tjs"
 ```
 
 ```
