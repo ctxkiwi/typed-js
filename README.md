@@ -26,32 +26,58 @@ import "./some-structs.tjs" // Include other .tjs files (type checked)
 
 struct App {
     loading: bool = false // default: false (optional)
-    storage: object<string> = {} // { key: string-value }
-    request_queue: array<Request> = []
-};
+    storage: object<string> // { key: string-value }
+    request_queue: array<Request>
 
-proto App isLoading = function () bool { return this.loading; }
+    // functions in structs cant have a default value
+    // This is to avoid bad practices, use "class" instead
+    isLoading: func () bool
+};
 
 App app = {
-    loading: true
+    loading: true,
+    isLoading: function(){ return this.isLoading; }
 };
 
+// Structs are just a layout for objects, if u want something like an object with functions, u create a class
+class App {
+    loading: bool = false
+    storage: object<string>
+    request_queue: array<Request>
+    title: string // default = ""
+
+    constructor: func (string title) void {
+        this.title = title;
+    }
+
+    isLoading: func () bool {
+        return this.loading;
+    }
+}
+
+App app = new App("Hello world");
+
+// Extending an existing struct
 extend struct Window { // by default tjs creates a "Window" struct, you can extend it like this
     app: App
 };
 
+// window is a default variable and uses the struct Window
+window.app = app;
+
+
 struct aMessage {
-    string message
+    string? message // default value null
 }
 
-func removeElement = function(Element el, aMessage? msg) void {
+func removeElement = function(Element el, aMessage msg) void {
 
     el.parentNode.removeChild(el);
 
-    if(msg){
+    if not null msg.message { // Now the compiler knows it's not null
         window.alert(msg.message);
         // Note:
-        alert("..."); // Will fail unless you use: define func alert (string) void
+        alert("..."); // Will fail unless you use: define func (string) void alert
     }
 
     // Macros
@@ -69,6 +95,21 @@ aMessage msg = {
 
 removeElement(myButton, msg);
 
+//
+func doRequest = function() void {
+
+    struct ResponseData {
+        success: bool
+    };
+    func responseHandler = function(string jsonData) ResponseData {
+        // JSON.parse has return type "any" (not recommended)
+        // "any" return type must be assigned to a variable with a known type
+        // in this case type: ResponseData
+        ResponseData responsData = JSON.parse(response.data);
+        return responseData;
+    }
+};
+
 // Store a string into a variable, the word "HMTL" is just for the IDE to know it's HTML
 #string:html myTemplate
 <div>Hello world!</div>
@@ -76,15 +117,19 @@ removeElement(myButton, msg);
 
 include "./window-ready.tjs"
 
-// exporting has no real function except for when u want to share your own structs with others
+// exporting has no real function except for when u want to share your own structs/classes/functions/... with others
 // by using: tjs compile src/main.tjs dist/my-package.js --export dest/my-package-defs.tjs
 export namespace MyPlugin // When someone includes your export file, it will store the structs under this name (optional)
-export structs App aMessage VueComponent:Component // Rename VueComponent to Component in our export
-export vars msg // results in "define aMessage msg;"
+// Export classes & structs
+// Rename VueComponent to Component in our export
+export types App aMessage VueComponent:Component
+export values msg // results in "define aMessage msg;"
+export namespace alias Vue3:Vue // For when u used Vue3 for your imports, but want other people to use Vue namespace
 
 // Then someone else can do
 include "./libs/my-plugin-defs.tjs"
 import aMessage from MyPlugin
+alert(msg.message);
 ```
 
 ```
