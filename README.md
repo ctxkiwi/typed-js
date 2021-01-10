@@ -98,7 +98,7 @@ removeElement(myButton, msg);
 //
 func doRequest = function() void {
 
-    struct ResponseData {
+    local struct ResponseData {
         success: bool
     };
     func responseHandler = function(string jsonData) ResponseData {
