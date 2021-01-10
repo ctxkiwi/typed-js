@@ -6,13 +6,15 @@
 ```jsx
 
 include "./libs/vue.js" // Include plain .js code (no type checking)
-include "./libs/vue-defs.tjs" // Import structs from Vue
+include "./libs/vue-defs.tjs" // include structs from Vue (just an example, this file doesnt exists)
 
 include "./libs/vue-router.js"
 include "./libs/vue-router-defs.tjs"
 
 import Vue Component:VueComponent from Vue // Load structs, load Vue as Vue & Component as VueComponent
 import Router from VueRouter
+
+Router myRouter;
 
 include "./libs/jQuery1.0.tjs"
 include "./libs/jQuery2.0.tjs" as jQuery2 // jQuery namespace already exists, rename
@@ -23,9 +25,15 @@ import Ajax from AjaxLib
 import "./some-structs.tjs" // Include other .tjs files (type checked)
 
 struct App {
-    loading: bool
-    storage: object<string> // { key: string-value }
-    request_queue: array<Request>
+    loading: bool = false // default: false (optional)
+    storage: object<string> = {} // { key: string-value }
+    request_queue: array<Request> = []
+};
+
+proto App isLoading = function () bool { return this.loading; }
+
+App app = {
+    loading: true
 };
 
 extend struct Window { // by default tjs creates a "Window" struct, you can extend it like this
