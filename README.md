@@ -124,7 +124,6 @@ export namespace MyPlugin // When someone includes your export file, it will sto
 // Rename VueComponent to Component in our export
 export types App aMessage VueComponent:Component
 export values msg // results in "define aMessage msg;"
-export namespace alias Vue3:Vue // For when u used Vue3 for your imports, but want other people to use Vue namespace
 
 // Then someone else can do
 include "./libs/my-plugin-defs.tjs"
