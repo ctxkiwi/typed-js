@@ -1,0 +1,12 @@
+
+-
+struct Person {
+    fn: string
+    ln: string = "Rabbit"
+}
+
+Person x = {
+    fn: "Jojo"
+}
+
+console.log(x);

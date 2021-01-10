@@ -1,1 +1,1 @@
-go run src/compiler.go src/main.go $1 $2
+go run src/functions.go src/compiler.go src/main.go $1 $2
