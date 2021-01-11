@@ -38,7 +38,7 @@ func (c *Compile) handleStruct (isLocal bool) {
 		}
 		c.checkVarNameSyntax([]byte(token))
 		varName := token
-		_, ok := s.vars[varName]; 
+		_, ok := s.props[varName]; 
 		if ok {
 			c.throwAtLine("Property name '"+ varName +"' already exists")
 		}
@@ -48,7 +48,10 @@ func (c *Compile) handleStruct (isLocal bool) {
 		prop := Property{
 			_type: t,
 		}
-		s.vars[varName] = prop
+		// Check default
+
+		// Store property
+		s.props[varName] = prop
 
 		token = c.getNextToken()
 	}
