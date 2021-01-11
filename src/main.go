@@ -7,6 +7,7 @@ import(
 	"path/filepath"
 	"strings"
 	"io/ioutil"
+	"sort"
 )
 
 func main(){
@@ -38,6 +39,8 @@ func main(){
 		fmt.Println("Cant generate absolute filepath for output file")
 		os.Exit(1)
 	}
+
+	sort.Strings(basicTypes)
 
 	code := compileFile(inputFilepath);
 

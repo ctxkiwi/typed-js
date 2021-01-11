@@ -5,7 +5,10 @@ import(
 	"fmt"
 	"os"
 	"io/ioutil"
+	"sort"
 )
+
+var basicTypes = []string{"bool", "int", "string", "array", "object", "func"}
 
 type Compile struct {
 	name string
@@ -13,6 +16,8 @@ type Compile struct {
 	index int
 	maxIndex int
 	line int
+	col int
+	lastTokenCol int
 
 	scopes []Scope
 	scopeIndex int
@@ -36,18 +41,18 @@ func compileFile(file string) string{
 		maxIndex: len(code) - 1,
 		line: 1,
 
-		scopeIndex: 0,
+		scopeIndex: -1,
 
 		code: code,
 		result: "",
 	}
 
-	c.scopes = append(c.scopes, Scope{})
+	c.createNewScope();
 
 	return c.compile()
 }
 
-func (c Compile) compile() string{
+func (c *Compile) compile() string{
 
 	for c.index <= c.maxIndex {
 		c.handleNextWord();
@@ -56,7 +61,18 @@ func (c Compile) compile() string{
 	return ""
 }
 
-func (c Compile) handleNextWord() {
+func (c *Compile) createNewScope() {
+	s := Scope{
+		structs: map[string]string{},
+		classes: map[string]string{},
+	}
+	c.scopes = append(c.scopes, s)
+	c.scopeIndex++
+}
+
+func (c *Compile) getNextToken() string {
+
+	c.lastTokenCol = c.col
 
 	word := ""
 	for c.index <= c.maxIndex {
@@ -66,67 +82,201 @@ func (c Compile) handleNextWord() {
 
 		if isNewLine(charInt) {
 			c.line++
+			c.col = 0;
 		}
 
 		if isWhiteSpace(charInt) && len(word) == 0 {
-			c.result += char
 			c.index++
+			c.col++
 			continue
 		}
 
 		if isAlphaChar(charInt) || (len(word) == 0 && char == "#") {
 			word += char
 			c.index++
+			c.col++
 			continue
 		}
 
 		if len(word) == 0 {
-			c.throwAtLine("Unexpect token: " + char)
+			c.index++
+			c.col++
+			return char;
 		}
 
 		break;
 	}
 
-	if string(word[0]) == "#" {
+	return word;
+}
+
+func (c *Compile) getNextTokenSameLine() string {
+
+	c.lastTokenCol = c.col
+
+	word := ""
+	for c.index <= c.maxIndex {
+
+		charInt := c.code[c.index];
+		char := string(charInt)
+
+		if isNewLine(charInt) {
+			if len(word) == 0 {
+				c.throwAtLine("Unexpected new line")
+			}
+			break
+		}
+
+		if isWhiteSpace(charInt) && len(word) == 0 {
+			c.index++
+			c.col++
+			continue
+		}
+
+		if isAlphaChar(charInt) || (len(word) == 0 && char == "#") {
+			word += char
+			c.index++
+			c.col++
+			continue
+		}
+
+		if len(word) == 0 {
+			c.index++
+			c.col++
+			return char;
+		}
+
+		break
+	}
+
+	return word;
+}
+
+func (c *Compile) getNextType() string {
+	result := ""
+	token := c.getNextTokenSameLine()
+	i := sort.SearchStrings(basicTypes, token)
+	if i < len(basicTypes) {
+		result += token
+		if token == "array" || token == "object" {
+			c.expectToken("<")
+			result += ":"
+			subtype := c.getNextType()
+			result += subtype
+		}
+		if token == "func" {
+			c.expectToken("(")
+			result += ":"
+			currentIndex := c.index
+			ntoken := c.getNextToken()
+			c.index = currentIndex
+			for ntoken != ")" {
+				ptype := c.getNextType()
+				result += "|" + ptype
+				ntoken = c.getNextToken()
+				if ntoken != "," && ntoken != ")" {
+					c.throwAtLine("Unexpected token: " + ntoken)
+				}
+			}
+			result += ":"
+			result += c.getNextType()
+		}
+		return result
+	}
+	if !c.typeExists(token) {
+		c.throwAtLine("Unknown type: " + token)
+	}
+	return token
+}
+
+func (c *Compile) expectToken(token string) {
+	ntoken := c.getNextTokenSameLine()
+	if ntoken != token {
+		c.throwAtLine("Expected: " + token)
+	}
+}
+
+func (c *Compile) handleNextWord() {
+
+	token := c.getNextToken()
+
+	if token == "#" {
+		word := c.getNextToken()
 		c.handleMacro(word)
 		return
 	} 
 
-	if word == "struct" || word == "local" {
-		c.handleStruct(word == "local")
+	if token == "struct" || token == "local" {
+		c.handleStruct(token == "local")
 		return
 	}
 
-	if word == "include" {
+	if token == "include" {
 		c.handleInclude()
 		return
 	}
 
-	if word == "import" {
+	if len(token) == 0 {
+		return;
+	}
+
+	if token == "import" {
 		c.handleImport()
 		return
 	}
 
-	c.throwAtLine("Unknown token: " + word)
+	c.throwAtLine("Unknown token: " + token)
 }
 
-func (c Compile) throwAtLine (msg string) {
+func (c *Compile) checkVarNameSyntax (name []byte) {
+	for _,char := range name {
+		// 95 = _
+		if !isAlphaChar(char) && char != 95 {
+			c.col = c.lastTokenCol
+			c.throwAtLine("Invalid variable name: " + string(name))
+		}
+	}
+}
+
+func (c *Compile) typeExists (name string) bool {
+	var sci = c.scopeIndex
+	for sci >= 0 {
+		scope := c.scopes[sci]
+		if scope.typeExists(name) {
+			return true
+		}
+		sci--
+	}
+	return false
+}
+
+func (c *Compile) throwAtLine (msg string) {
 
 	fmt.Print("\033[31m") // Color red
 	fmt.Println(msg)
 	fmt.Print("\033[0m") // Color reset
-	fmt.Println("Line", c.line, "in", c.name)
-	fmt.Println("Line:", c.readLine(c.line))
+	fmt.Println("Line", c.line, "col", c.col, "in", c.name)
+	fmt.Println(c.readLine(c.line))
+	fmt.Print("\033[31m") // Color red
+	i := 0 
+	mark := ""
+	for i < c.col {
+		mark += " "
+		i++
+	}
+	mark += "^"
+	fmt.Println(mark)
+	fmt.Print("\033[0m") // Color reset
 
 	os.Exit(1)
 }
 
-func (c Compile) throw (msg string) {
+func (c *Compile) throw (msg string) {
 	fmt.Println(msg)
 	os.Exit(1)
 }
 
-func (c Compile) readLine(lineNr int) string {
+func (c *Compile) readLine(lineNr int) string {
 	i := 0
 	line := ""
 	currentLine := 1
@@ -134,12 +284,13 @@ func (c Compile) readLine(lineNr int) string {
 
 		charInt := c.code[i];
 		char := string(charInt)
+		isLF := isNewLine(charInt)
 
-		if currentLine == lineNr {
+		if currentLine == lineNr && !isLF {
 			line += char
 		}
 
-		if isNewLine(charInt) {
+		if isLF {
 			currentLine++
 			if(currentLine > lineNr) {
 				break

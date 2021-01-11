@@ -13,7 +13,15 @@ type Scope struct {
 	vars map[string]Var
 }
 
-func (s Scope) hasStruct (name string) bool {
+func (s *Scope) typeExists (name string) bool {
+	_, ok := s.structs[name]
+	if ok { return true }
+	_, ok = s.classes[name]
+	if ok { return true }
+	return false
+}
+
+func (s *Scope) hasStruct (name string) bool {
 	for _, str := range s.structs {
         if str == name {
             return true
@@ -22,7 +30,7 @@ func (s Scope) hasStruct (name string) bool {
     return false
 }
 
-func (s Scope) hasClass (name string) bool {
+func (s *Scope) hasClass (name string) bool {
 	for _, str := range s.classes {
         if str == name {
             return true
