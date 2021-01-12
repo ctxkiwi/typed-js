@@ -1,7 +1,6 @@
+package main
 
-package main;
-
-func isAlphaChar (c byte) bool {
+func isAlphaChar(c byte) bool {
 
 	if c >= 65 && c <= 90 {
 		return true
@@ -14,7 +13,7 @@ func isAlphaChar (c byte) bool {
 	return false
 }
 
-func isVarNameChar (c byte) bool {
+func isVarNameChar(c byte) bool {
 
 	if c >= 65 && c <= 90 {
 		return true
@@ -26,13 +25,14 @@ func isVarNameChar (c byte) bool {
 
 	// Underscore
 	if c == 95 {
+		return true
 	}
 
 	return false
 }
 
-func isVarNameSyntax (name []byte) bool {
-	for _,char := range name {
+func isVarNameSyntax(name []byte) bool {
+	for _, char := range name {
 		if !isVarNameChar(char) {
 			return false
 		}
@@ -49,10 +49,10 @@ func isNumberChar(c byte) bool {
 	return false
 }
 
-func isWhiteSpace (c byte) bool {
+func isWhiteSpace(c byte) bool {
 	return c <= 32
 }
 
-func isNewLine (c byte) bool {
+func isNewLine(c byte) bool {
 	return c == 10
 }

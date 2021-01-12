@@ -102,7 +102,7 @@ func (c *Compile) getNextToken() string {
 			continue
 		}
 
-		if isAlphaChar(charInt) || (len(word) == 0 && char == "#") {
+		if isVarNameChar(charInt) || (len(word) == 0 && char == "#") {
 			word += char
 			c.index++
 			c.col++
@@ -145,7 +145,7 @@ func (c *Compile) getNextTokenSameLine() string {
 			continue
 		}
 
-		if isAlphaChar(charInt) || (len(word) == 0 && char == "#") {
+		if isVarNameChar(charInt) || (len(word) == 0 && char == "#") {
 			word += char
 			c.index++
 			c.col++

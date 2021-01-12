@@ -1,11 +1,11 @@
 
 struct Person {
-    fn: string
+    _fn: string
     ln: string = "Rabbit"
 }
 
 Person x = {
-    fn: "Jojo"
+    _fn: "Jojo"
 }
 
 //console.log(x);
