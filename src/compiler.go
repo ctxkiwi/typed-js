@@ -393,6 +393,11 @@ func (c *Compile) handleNextWord() {
 		return
 	}
 
+	if token == "/" {
+		c.handleComment()
+		return
+	}
+
 	_typeOfType, ok := c.getTypeOfType(token)
 	if ok {
 		c.declareVariable(token, _typeOfType)

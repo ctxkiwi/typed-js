@@ -1,14 +1,10 @@
-
 package main
 
-import (
-)
-
-func (c *Compile) handleStruct (isLocal bool) {
+func (c *Compile) handleStruct(isLocal bool) {
 
 	if isLocal {
 
-		token := c.getNextToken();
+		token := c.getNextToken()
 		if token != "struct" {
 			c.throwAtLine("Unexpected token: " + token)
 		}
@@ -21,7 +17,7 @@ func (c *Compile) handleStruct (isLocal bool) {
 	name := c.getNextToken()
 	c.checkVarNameSyntax([]byte(name))
 
-	if(c.typeExists(name)){
+	if c.typeExists(name) {
 		c.throwAtLine("Struct name already in use: " + name)
 	}
 
@@ -41,22 +37,22 @@ func (c *Compile) handleStruct (isLocal bool) {
 		}
 		c.checkVarNameSyntax([]byte(token))
 		varName := token
-		_, ok := s.props[varName]; 
+		_, ok := s.props[varName]
 		if ok {
-			c.throwAtLine("Property name '"+ varName +"' already exists")
+			c.throwAtLine("Property name '" + varName + "' already exists")
 		}
 		c.expectToken(":")
 		// Read type
 		t := c.getNextType()
 		_typeOfType, ok := c.getTypeOfType(t)
 		prop := Property{
-			_type: t,
+			_type:       t,
 			_typeOfType: _typeOfType,
 		}
 		// Check default
 		char := c.getNextCharacterOnLine()
 		if char == "=" {
-			value,_ := c.getNextValueToken()
+			value, _ := c.getNextValueToken()
 			prop._default = value
 		}
 

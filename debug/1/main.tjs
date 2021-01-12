@@ -8,4 +8,4 @@ Person x = {
     fn: "Jojo"
 }
 
-console.log(x);
+//console.log(x);
