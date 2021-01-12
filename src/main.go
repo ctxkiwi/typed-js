@@ -49,8 +49,6 @@ func main() {
 	elapsed := time.Since(start)
 
 	ioutil.WriteFile(outputFilepath, []byte(code), 0644)
-	fmt.Println(outputFilepath)
 
-	// fmt.Println("Compiled in ")
 	log.Printf("Compiled in %s", elapsed)
 }
