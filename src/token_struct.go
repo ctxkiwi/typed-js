@@ -48,8 +48,10 @@ func (c *Compile) handleStruct (isLocal bool) {
 		c.expectToken(":")
 		// Read type
 		t := c.getNextType()
+		_typeOfType, ok := c.getTypeOfType(t)
 		prop := Property{
 			_type: t,
+			_typeOfType: _typeOfType,
 		}
 		// Check default
 		char := c.getNextCharacterOnLine()

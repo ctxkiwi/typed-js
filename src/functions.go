@@ -31,6 +31,15 @@ func isVarNameChar (c byte) bool {
 	return false
 }
 
+func isVarNameSyntax (name []byte) bool {
+	for _,char := range name {
+		if !isVarNameChar(char) {
+			return false
+		}
+	}
+	return true
+}
+
 func isNumberChar(c byte) bool {
 
 	if c >= 48 && c <= 57 {

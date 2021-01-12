@@ -1,62 +1,61 @@
+package main
 
-package main;
-
-import(
+import (
 	"fmt"
-	"os"
 	"io/ioutil"
+	"os"
 	"sort"
 )
 
-var basicTypes = []string{"bool", "int", "string", "array", "object", "func"}
+var basicTypes = []string{"bool", "int", "float", "string", "array", "object", "func"}
 var basicValues = []string{"true", "false", "undefined", "null", "[]", "{}"}
 
 type Compile struct {
 	name string
 
-	index int
-	maxIndex int
-	line int
-	col int
+	index        int
+	maxIndex     int
+	line         int
+	col          int
 	lastTokenCol int
 
-	scopes []Scope
+	scopes     []Scope
 	scopeIndex int
 
-	code []byte
+	code   []byte
 	result string
 }
 
-func compileFile(file string) string{
+func compileFile(file string) string {
 
-	code, err := ioutil.ReadFile(file);
+	code, err := ioutil.ReadFile(file)
 	if err != nil {
 		fmt.Println("Cant read file: " + file)
 		os.Exit(1)
 	}
 
-	c := Compile {
+	c := Compile{
 		name: file,
 
-		index: 0,
+		index:    0,
 		maxIndex: len(code) - 1,
-		line: 1,
+		line:     1,
 
 		scopeIndex: -1,
 
-		code: code,
+		code:   code,
 		result: "",
 	}
 
-	c.createNewScope();
+	c.createNewScope()
 
 	return c.compile()
 }
 
-func (c *Compile) compile() string{
+func (c *Compile) compile() string {
 
 	for c.index <= c.maxIndex {
-		c.handleNextWord();
+		c.handleNextWord()
 	}
 
 	return ""
@@ -78,24 +77,24 @@ func (c *Compile) getNextToken() string {
 	word := ""
 	for c.index <= c.maxIndex {
 
-		charInt := c.code[c.index];
+		charInt := c.code[c.index]
 		char := string(charInt)
 
 		if isNewLine(charInt) {
 			c.index++
 			c.line++
-			c.col = 0;
-			c.lastTokenCol = 0;
+			c.col = 0
+			c.lastTokenCol = 0
 			if len(word) == 0 {
-				continue;
+				continue
 			}
-			break;
+			break
 		}
 
 		if isWhiteSpace(charInt) && len(word) == 0 {
 			c.index++
 			c.col++
-			c.lastTokenCol++;
+			c.lastTokenCol++
 			continue
 		}
 
@@ -109,13 +108,13 @@ func (c *Compile) getNextToken() string {
 		if len(word) == 0 {
 			c.index++
 			c.col++
-			return char;
+			return char
 		}
 
-		break;
+		break
 	}
 
-	return word;
+	return word
 }
 
 func (c *Compile) getNextTokenSameLine() string {
@@ -125,7 +124,7 @@ func (c *Compile) getNextTokenSameLine() string {
 	word := ""
 	for c.index <= c.maxIndex {
 
-		charInt := c.code[c.index];
+		charInt := c.code[c.index]
 		char := string(charInt)
 
 		if isNewLine(charInt) {
@@ -138,7 +137,7 @@ func (c *Compile) getNextTokenSameLine() string {
 		if isWhiteSpace(charInt) && len(word) == 0 {
 			c.index++
 			c.col++
-			c.lastTokenCol++;
+			c.lastTokenCol++
 			continue
 		}
 
@@ -152,13 +151,13 @@ func (c *Compile) getNextTokenSameLine() string {
 		if len(word) == 0 {
 			c.index++
 			c.col++
-			return char;
+			return char
 		}
 
 		break
 	}
 
-	return word;
+	return word
 }
 
 func (c *Compile) getNextCharacterOnLine() string {
@@ -167,13 +166,13 @@ func (c *Compile) getNextCharacterOnLine() string {
 
 	for c.index <= c.maxIndex {
 
-		charInt := c.code[c.index];
+		charInt := c.code[c.index]
 		char := string(charInt)
 
 		if isNewLine(charInt) {
 			c.index++
 			c.col = 0
-			c.lastTokenCol = 0;
+			c.lastTokenCol = 0
 			c.line++
 			return char
 		}
@@ -207,7 +206,7 @@ func (c *Compile) getNextValueToken() (string, string) {
 	for c.index <= c.maxIndex {
 
 		prevChar = char
-		charInt := c.code[c.index];
+		charInt := c.code[c.index]
 		char = string(charInt)
 
 		if inStr {
@@ -215,7 +214,7 @@ func (c *Compile) getNextValueToken() (string, string) {
 			c.index++
 			c.col++
 			if char == endStrChar {
-				break;
+				break
 			}
 			if isNewLine(charInt) {
 				if prevChar != "\\" {
@@ -224,9 +223,9 @@ func (c *Compile) getNextValueToken() (string, string) {
 				}
 				c.line++
 				c.col = 0
-				c.lastTokenCol = 0;
+				c.lastTokenCol = 0
 			}
-			continue;
+			continue
 		}
 
 		if isNewLine(charInt) {
@@ -239,7 +238,7 @@ func (c *Compile) getNextValueToken() (string, string) {
 		if isWhiteSpace(charInt) && len(word) == 0 {
 			c.index++
 			c.col++
-			c.lastTokenCol++;
+			c.lastTokenCol++
 			continue
 		}
 
@@ -291,7 +290,7 @@ func (c *Compile) getNextValueToken() (string, string) {
 	}
 
 	// if ends with a dot
-	if string(word[len(word) - 1]) == "." {
+	if string(word[len(word)-1]) == "." {
 		c.throwAtLine("Unexpected dot")
 	}
 
@@ -307,7 +306,9 @@ func (c *Compile) getNextValueToken() (string, string) {
 		return word, "object"
 	}
 
-	if vtype == "str" { return word, "string" }
+	if vtype == "str" {
+		return word, "string"
+	}
 	if vtype == "num" {
 		if hasDot {
 			return word, "float"
@@ -316,14 +317,14 @@ func (c *Compile) getNextValueToken() (string, string) {
 	}
 
 	c.throwAtLine("Unknown value: " + word)
-	return "",""
+	return "", ""
 }
 
 func (c *Compile) getNextType() string {
 	result := ""
 	token := c.getNextTokenSameLine()
 	i := sort.SearchStrings(basicTypes, token)
-	if i < len(basicTypes) {
+	if i < len(basicTypes) && basicTypes[i] == token {
 		result += token
 		if token == "array" || token == "object" {
 			c.expectToken("<")
@@ -371,7 +372,7 @@ func (c *Compile) handleNextWord() {
 		word := c.getNextToken()
 		c.handleMacro(word)
 		return
-	} 
+	}
 
 	if token == "struct" || token == "local" {
 		c.handleStruct(token == "local")
@@ -384,7 +385,7 @@ func (c *Compile) handleNextWord() {
 	}
 
 	if len(token) == 0 {
-		return;
+		return
 	}
 
 	if token == "import" {
@@ -392,21 +393,92 @@ func (c *Compile) handleNextWord() {
 		return
 	}
 
+	_typeOfType, ok := c.getTypeOfType(token)
+	if ok {
+		c.declareVariable(token, _typeOfType)
+		return
+	}
+
+	_, ok = c.getVar(token)
+	if ok {
+		c.throwAtLine("Variables not ready yet")
+	}
+
+	// Unknown
 	c.col = c.lastTokenCol
+
+	if isVarNameSyntax([]byte(token)) {
+		c.throwAtLine("Unknown variable/function/struct: " + token)
+	}
+
 	c.throwAtLine("Unknown token: " + token)
 }
 
-func (c *Compile) checkVarNameSyntax (name []byte) {
-	for _,char := range name {
-		// 95 = _
-		if !isVarNameChar(char) {
-			c.col = c.lastTokenCol
-			c.throwAtLine("Invalid variable name: " + string(name))
-		}
+func (c *Compile) getTypeOfType(_type string) (string, bool) {
+	i := sort.SearchStrings(basicTypes, _type)
+	if i < len(basicTypes) && basicTypes[i] == _type {
+		return "basic", true
+	}
+	_, ok := c.getStruct(_type)
+	if ok {
+		return "struct", true
+	}
+	_, ok = c.getClass(_type)
+	if ok {
+		return "class", true
+	}
+	return "", false
+}
+
+func (c *Compile) checkVarNameSyntax(name []byte) {
+	if !isVarNameSyntax(name) {
+		c.col = c.lastTokenCol
+		c.throwAtLine("Invalid variable name: " + string(name))
 	}
 }
 
-func (c *Compile) typeExists (name string) bool {
+func (c *Compile) getStruct(name string) (*Struct, bool) {
+	var sci = c.scopeIndex
+	for sci >= 0 {
+		scope := c.scopes[sci]
+		realName, ok := scope.structs[name]
+		if ok {
+			result, ok := allStructs[realName]
+			return &result, ok
+		}
+		sci--
+	}
+	return nil, false
+}
+
+func (c *Compile) getClass(name string) (*Class, bool) {
+	var sci = c.scopeIndex
+	for sci >= 0 {
+		scope := c.scopes[sci]
+		realName, ok := scope.classes[name]
+		if ok {
+			result, ok := allClasses[realName]
+			return &result, ok
+		}
+		sci--
+	}
+	return nil, false
+}
+
+func (c *Compile) getVar(name string) (*Var, bool) {
+	var sci = c.scopeIndex
+	for sci >= 0 {
+		scope := c.scopes[sci]
+		result, ok := scope.vars[name]
+		if ok {
+			return &result, ok
+		}
+		sci--
+	}
+	return nil, false
+}
+
+func (c *Compile) typeExists(name string) bool {
 	var sci = c.scopeIndex
 	for sci >= 0 {
 		scope := c.scopes[sci]
@@ -418,7 +490,7 @@ func (c *Compile) typeExists (name string) bool {
 	return false
 }
 
-func (c *Compile) throwAtLine (msg string) {
+func (c *Compile) throwAtLine(msg string) {
 
 	fmt.Print("\033[31m") // Color red
 	fmt.Println(msg)
@@ -426,7 +498,7 @@ func (c *Compile) throwAtLine (msg string) {
 	fmt.Println("Line", c.line, "col", c.col, "in", c.name)
 	fmt.Println(c.readLine(c.line))
 	fmt.Print("\033[31m") // Color red
-	i := 0 
+	i := 0
 	mark := ""
 	for i < c.col {
 		mark += " "
@@ -439,7 +511,7 @@ func (c *Compile) throwAtLine (msg string) {
 	os.Exit(1)
 }
 
-func (c *Compile) throw (msg string) {
+func (c *Compile) throw(msg string) {
 	fmt.Println(msg)
 	os.Exit(1)
 }
@@ -450,7 +522,7 @@ func (c *Compile) readLine(lineNr int) string {
 	currentLine := 1
 	for i <= c.maxIndex {
 
-		charInt := c.code[i];
+		charInt := c.code[i]
 		char := string(charInt)
 		isLF := isNewLine(charInt)
 
@@ -460,12 +532,12 @@ func (c *Compile) readLine(lineNr int) string {
 
 		if isLF {
 			currentLine++
-			if(currentLine > lineNr) {
+			if currentLine > lineNr {
 				break
 			}
 		}
 
-		i++;
+		i++
 	}
 	return line
 }

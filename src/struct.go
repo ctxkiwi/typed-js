@@ -8,12 +8,12 @@ import (
 var allStructs = map[string]Struct{}
 var structCount = 0
 
-func createNewStruct() (string, Struct) {
+func createNewStruct() (string, *Struct) {
 	name := strconv.Itoa(structCount)
 	s := Struct{}
 	s.props = map[string]Property{}
 	allStructs[name] = s
-	return name, s
+	return name, &s
 }
 
 type Struct struct {
@@ -23,5 +23,6 @@ type Struct struct {
 
 type Property struct {
 	_type string
+	_typeOfType string
 	_default string
 }
