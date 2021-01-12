@@ -1,16 +1,17 @@
+package main
 
-package main;
-
-import(
-	"os"
+import (
 	"fmt"
-	"path/filepath"
-	"strings"
 	"io/ioutil"
+	"log"
+	"os"
+	"path/filepath"
 	"sort"
+	"strings"
+	"time"
 )
 
-func main(){
+func main() {
 	// Get file from argv
 	if len(os.Args) <= 1 {
 		fmt.Println("Missing input file param")
@@ -21,7 +22,7 @@ func main(){
 		os.Exit(1)
 	}
 
-	fn := os.Args[1];
+	fn := os.Args[1]
 	if !strings.HasSuffix(fn, ".tjs") {
 		fmt.Println("File must be a .tjs file")
 		os.Exit(1)
@@ -33,7 +34,7 @@ func main(){
 		os.Exit(1)
 	}
 
-	outfn := os.Args[2];
+	outfn := os.Args[2]
 	outputFilepath, err := filepath.Abs(outfn)
 	if err != nil {
 		fmt.Println("Cant generate absolute filepath for output file")
@@ -43,8 +44,13 @@ func main(){
 	sort.Strings(basicTypes)
 	sort.Strings(basicValues)
 
-	code := compileFile(inputFilepath);
+	start := time.Now()
+	code := compileFile(inputFilepath)
+	elapsed := time.Since(start)
 
 	ioutil.WriteFile(outputFilepath, []byte(code), 0644)
+	fmt.Println(outputFilepath)
 
+	// fmt.Println("Compiled in ")
+	log.Printf("Compiled in %s", elapsed)
 }

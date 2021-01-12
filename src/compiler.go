@@ -18,6 +18,7 @@ type Compile struct {
 	line         int
 	col          int
 	lastTokenCol int
+	whitespace   string
 
 	scopes     []Scope
 	scopeIndex int
@@ -58,7 +59,7 @@ func (c *Compile) compile() string {
 		c.handleNextWord()
 	}
 
-	return ""
+	return c.result
 }
 
 func (c *Compile) createNewScope() {
@@ -73,6 +74,7 @@ func (c *Compile) createNewScope() {
 func (c *Compile) getNextToken() string {
 
 	c.lastTokenCol = c.col
+	c.whitespace = ""
 
 	word := ""
 	for c.index <= c.maxIndex {
@@ -85,6 +87,7 @@ func (c *Compile) getNextToken() string {
 			c.line++
 			c.col = 0
 			c.lastTokenCol = 0
+			c.whitespace = "\n"
 			if len(word) == 0 {
 				continue
 			}
@@ -95,6 +98,7 @@ func (c *Compile) getNextToken() string {
 			c.index++
 			c.col++
 			c.lastTokenCol++
+			c.whitespace += char
 			continue
 		}
 

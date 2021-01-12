@@ -54,7 +54,7 @@ func (c *Compile) declareVariable(_type string, _typeOfType string) {
 	if ok {
 		c.throwAtLine("Variable name already in use: " + varName)
 	}
-	c.result += "var " + varName
+	c.result += c.whitespace + "var " + varName
 	c.expectToken("=")
 	c.result += " = "
 	c.assignValue(_type, _typeOfType)
@@ -87,6 +87,7 @@ func (c *Compile) assignValue(_type string, _typeOfType string) {
 			if token != "\"" && token != "'" {
 				c.throwAtLine("Unexpected token: " + token)
 			}
+			c.result += token
 			char := ""
 			lastChar := ""
 			for c.index <= c.maxIndex {
@@ -116,7 +117,7 @@ func (c *Compile) assignValue(_type string, _typeOfType string) {
 		if token != "{" {
 			c.throwAtLine("Expected token: {")
 		}
-		c.result += "{\n"
+		c.result += "{"
 
 		s, _ := c.getStruct(_type)
 		token := c.getNextToken()
@@ -126,16 +127,23 @@ func (c *Compile) assignValue(_type string, _typeOfType string) {
 			}
 			c.checkVarNameSyntax([]byte(token))
 			varName := token
+			c.result += c.whitespace + varName
 			prop, ok := s.props[varName]
 			if !ok {
 				c.throwAtLine("Unknown property '" + varName + "' in struct '" + _type + "'")
 			}
 			c.expectToken(":")
+			c.result += ":"
 			// Read value
 			c.assignValue(prop._type, prop._typeOfType)
 
 			token = c.getNextToken()
+			if token == "," {
+				c.result += ","
+				token = c.getNextToken()
+			}
 		}
+		c.result += c.whitespace + "}"
 
 	} else if _typeOfType == "class" {
 
