@@ -9,6 +9,7 @@ import(
 )
 
 var basicTypes = []string{"bool", "int", "string", "array", "object", "func"}
+var basicValues = []string{"true", "false", "undefined", "null", "[]", "{}"}
 
 type Compile struct {
 	name string
@@ -81,13 +82,20 @@ func (c *Compile) getNextToken() string {
 		char := string(charInt)
 
 		if isNewLine(charInt) {
+			c.index++
 			c.line++
 			c.col = 0;
+			c.lastTokenCol = 0;
+			if len(word) == 0 {
+				continue;
+			}
+			break;
 		}
 
 		if isWhiteSpace(charInt) && len(word) == 0 {
 			c.index++
 			c.col++
+			c.lastTokenCol++;
 			continue
 		}
 
@@ -130,6 +138,7 @@ func (c *Compile) getNextTokenSameLine() string {
 		if isWhiteSpace(charInt) && len(word) == 0 {
 			c.index++
 			c.col++
+			c.lastTokenCol++;
 			continue
 		}
 
@@ -150,6 +159,164 @@ func (c *Compile) getNextTokenSameLine() string {
 	}
 
 	return word;
+}
+
+func (c *Compile) getNextCharacterOnLine() string {
+
+	c.lastTokenCol = c.col
+
+	for c.index <= c.maxIndex {
+
+		charInt := c.code[c.index];
+		char := string(charInt)
+
+		if isNewLine(charInt) {
+			c.index++
+			c.col = 0
+			c.lastTokenCol = 0;
+			c.line++
+			return char
+		}
+
+		c.index++
+		c.col++
+
+		if isWhiteSpace(charInt) {
+			continue
+		}
+
+		return char
+	}
+
+	c.throwAtLine("Unexpected end of file")
+	return ""
+}
+
+func (c *Compile) getNextValueToken() (string, string) {
+
+	c.lastTokenCol = c.col
+
+	vtype := ""
+	word := ""
+	prevChar := ""
+	char := ""
+	inStr := false
+	hasDot := false
+	endStrChar := ""
+
+	for c.index <= c.maxIndex {
+
+		prevChar = char
+		charInt := c.code[c.index];
+		char = string(charInt)
+
+		if inStr {
+			word += char
+			c.index++
+			c.col++
+			if char == endStrChar {
+				break;
+			}
+			if isNewLine(charInt) {
+				if prevChar != "\\" {
+					// prevent new line
+					c.throwAtLine("Unexpected new line")
+				}
+				c.line++
+				c.col = 0
+				c.lastTokenCol = 0;
+			}
+			continue;
+		}
+
+		if isNewLine(charInt) {
+			if len(word) == 0 {
+				c.throwAtLine("Unexpected new line")
+			}
+			break
+		}
+
+		if isWhiteSpace(charInt) && len(word) == 0 {
+			c.index++
+			c.col++
+			c.lastTokenCol++;
+			continue
+		}
+
+		// Strings
+		if len(word) == 0 && (char == "\"" || char == "'") {
+			word += char
+			endStrChar = char
+			c.index++
+			c.col++
+			vtype = "str"
+			inStr = true
+			continue
+		}
+
+		if isVarNameChar(charInt) {
+			if vtype != "" && vtype != "word" {
+				c.throwAtLine("Unexpected char: " + char)
+			}
+			word += char
+			c.index++
+			c.col++
+			vtype = "word"
+			continue
+		}
+
+		isDot := char == "."
+		if isNumberChar(charInt) || isDot {
+			if vtype != "" && vtype != "num" {
+				c.throwAtLine("Unexpected char: " + char)
+			}
+			if isDot {
+				if hasDot || len(word) == 0 {
+					c.throwAtLine("Unexpected char: " + char)
+				}
+				hasDot = true
+			}
+			word += char
+			c.index++
+			c.col++
+			vtype = "num"
+			continue
+		}
+
+		break
+	}
+
+	if len(word) == 0 {
+		c.throwAtLine("Missing value")
+	}
+
+	// if ends with a dot
+	if string(word[len(word) - 1]) == "." {
+		c.throwAtLine("Unexpected dot")
+	}
+
+	if word == "true" || word == "false" {
+		return word, "bool"
+	}
+
+	if word == "[]" {
+		return word, "array"
+	}
+
+	if word == "{}" {
+		return word, "object"
+	}
+
+	if vtype == "str" { return word, "string" }
+	if vtype == "num" {
+		if hasDot {
+			return word, "float"
+		}
+		return word, "int"
+	}
+
+	c.throwAtLine("Unknown value: " + word)
+	return "",""
 }
 
 func (c *Compile) getNextType() string {
@@ -225,13 +392,14 @@ func (c *Compile) handleNextWord() {
 		return
 	}
 
+	c.col = c.lastTokenCol
 	c.throwAtLine("Unknown token: " + token)
 }
 
 func (c *Compile) checkVarNameSyntax (name []byte) {
 	for _,char := range name {
 		// 95 = _
-		if !isAlphaChar(char) && char != 95 {
+		if !isVarNameChar(char) {
 			c.col = c.lastTokenCol
 			c.throwAtLine("Invalid variable name: " + string(name))
 		}

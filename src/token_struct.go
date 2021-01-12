@@ -1,6 +1,9 @@
 
 package main
 
+import (
+)
+
 func (c *Compile) handleStruct (isLocal bool) {
 
 	if isLocal {
@@ -49,6 +52,11 @@ func (c *Compile) handleStruct (isLocal bool) {
 			_type: t,
 		}
 		// Check default
+		char := c.getNextCharacterOnLine()
+		if char == "=" {
+			value,_ := c.getNextValueToken()
+			prop._default = value
+		}
 
 		// Store property
 		s.props[varName] = prop

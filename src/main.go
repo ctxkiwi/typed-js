@@ -41,6 +41,7 @@ func main(){
 	}
 
 	sort.Strings(basicTypes)
+	sort.Strings(basicValues)
 
 	code := compileFile(inputFilepath);
 
