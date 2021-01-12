@@ -1,0 +1,33 @@
+
+struct string {
+    indexOf: func(string) int
+    charAt: func(int) string
+    length: int
+    split: func(string) array<string>
+    substr: func(int, int?) string
+}
+
+struct int {
+    toExponential: func(int?) string
+    toFixed: func(int?) string
+    toLocaleString: func(string?, object<any>?) string
+    toPrecision: func(int?) string
+}
+
+struct float {
+    toExponential: func(int?) string
+    toFixed: func(int?) string
+    toLocaleString: func(string?, object<any>?) string
+    toPrecision: func(int?) string
+}
+
+struct bool {
+    toString: func() string
+}
+
+struct array {
+    indexOf: func(string) int
+    length: int
+    push: func(T) void
+    pop: func() T
+}
