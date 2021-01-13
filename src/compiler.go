@@ -2,13 +2,15 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"sort"
 )
 
 var basicTypes = []string{"bool", "int", "float", "string", "array", "object", "func"}
 var basicValues = []string{"true", "false", "undefined", "null", "[]", "{}"}
+
+var scopes []*Scope
+var scopeIndex = -1
 
 type Compile struct {
 	name string
@@ -20,35 +22,26 @@ type Compile struct {
 	lastTokenCol int
 	whitespace   string
 
-	scopes     []Scope
-	scopeIndex int
-
 	code   []byte
 	result string
 }
 
-func compileFile(file string) string {
-
-	code, err := ioutil.ReadFile(file)
-	if err != nil {
-		fmt.Println("Cant read file: " + file)
-		os.Exit(1)
-	}
+func compileCode(name string, code []byte) string {
 
 	c := Compile{
-		name: file,
+		name: name,
 
 		index:    0,
 		maxIndex: len(code) - 1,
 		line:     1,
 
-		scopeIndex: -1,
-
 		code:   code,
 		result: "",
 	}
 
-	c.createNewScope()
+	if len(scopes) == 0 {
+		c.createNewScope()
+	}
 
 	return c.compile()
 }
@@ -67,8 +60,8 @@ func (c *Compile) createNewScope() {
 		structs: map[string]string{},
 		classes: map[string]string{},
 	}
-	c.scopes = append(c.scopes, s)
-	c.scopeIndex++
+	scopes = append(scopes, &s)
+	scopeIndex++
 }
 
 func (c *Compile) getNextToken() string {
@@ -447,9 +440,9 @@ func (c *Compile) checkVarNameSyntax(name []byte) {
 }
 
 func (c *Compile) getStruct(name string) (*Struct, bool) {
-	var sci = c.scopeIndex
+	var sci = scopeIndex
 	for sci >= 0 {
-		scope := c.scopes[sci]
+		scope := scopes[sci]
 		realName, ok := scope.structs[name]
 		if ok {
 			result, ok := allStructs[realName]
@@ -461,9 +454,9 @@ func (c *Compile) getStruct(name string) (*Struct, bool) {
 }
 
 func (c *Compile) getClass(name string) (*Class, bool) {
-	var sci = c.scopeIndex
+	var sci = scopeIndex
 	for sci >= 0 {
-		scope := c.scopes[sci]
+		scope := scopes[sci]
 		realName, ok := scope.classes[name]
 		if ok {
 			result, ok := allClasses[realName]
@@ -475,9 +468,9 @@ func (c *Compile) getClass(name string) (*Class, bool) {
 }
 
 func (c *Compile) getVar(name string) (*Var, bool) {
-	var sci = c.scopeIndex
+	var sci = scopeIndex
 	for sci >= 0 {
-		scope := c.scopes[sci]
+		scope := scopes[sci]
 		result, ok := scope.vars[name]
 		if ok {
 			return &result, ok
@@ -488,9 +481,9 @@ func (c *Compile) getVar(name string) (*Var, bool) {
 }
 
 func (c *Compile) typeExists(name string) bool {
-	var sci = c.scopeIndex
+	var sci = scopeIndex
 	for sci >= 0 {
-		scope := c.scopes[sci]
+		scope := scopes[sci]
 		if scope.typeExists(name) {
 			return true
 		}

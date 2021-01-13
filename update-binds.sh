@@ -1,0 +1,1 @@
+go-bindata -o src/binds-core.go src/core/

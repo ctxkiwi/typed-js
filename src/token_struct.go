@@ -9,7 +9,7 @@ func (c *Compile) handleStruct(isLocal bool) {
 			c.throwAtLine("Unexpected token: " + token)
 		}
 	} else {
-		if c.scopeIndex > 0 {
+		if scopeIndex > 0 {
 			c.throwAtLine("You must use 'local' to create a local struct")
 		}
 	}
@@ -24,7 +24,7 @@ func (c *Compile) handleStruct(isLocal bool) {
 	globalName, s := createNewStruct()
 	s.isLocal = isLocal
 
-	scope := c.scopes[c.scopeIndex]
+	scope := scopes[scopeIndex]
 	scope.structs[name] = globalName
 
 	// Get fields

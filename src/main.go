@@ -41,14 +41,29 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Check if input file exists
+	code, err := ioutil.ReadFile(inputFilepath)
+	if err != nil {
+		fmt.Println("Cant read file: " + inputFilepath)
+		os.Exit(1)
+	}
+
+	// Sort global arrays
 	sort.Strings(basicTypes)
 	sort.Strings(basicValues)
 
+	// Compile
 	start := time.Now()
-	code := compileFile(inputFilepath)
+	data, err := Asset("src/core/types.tjs")
+	if err != nil {
+		fmt.Println("Missing assets: @core/types")
+		os.Exit(1)
+	}
+	jscode := compileCode("src/core/types.tjs", []byte(data))
+	jscode += compileCode(inputFilepath, code)
 	elapsed := time.Since(start)
 
-	ioutil.WriteFile(outputFilepath, []byte(code), 0644)
-
+	// Result
+	ioutil.WriteFile(outputFilepath, []byte(jscode), 0644)
 	log.Printf("Compiled in %s", elapsed)
 }

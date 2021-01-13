@@ -1,5 +1,5 @@
 
-struct string {
+define struct string, class String {
     indexOf: func(string) int
     charAt: func(int) string
     length: int
@@ -7,27 +7,23 @@ struct string {
     substr: func(int, int?) string
 }
 
-struct int {
+define struct number, class Number {
     toExponential: func(int?) string
     toFixed: func(int?) string
     toLocaleString: func(string?, object<any>?) string
     toPrecision: func(int?) string
 }
 
-struct float {
-    toExponential: func(int?) string
-    toFixed: func(int?) string
-    toLocaleString: func(string?, object<any>?) string
-    toPrecision: func(int?) string
-}
-
-struct bool {
+define struct bool, class Number {
     toString: func() string
 }
 
-struct array {
+define struct array, class Number {
     indexOf: func(string) int
     length: int
     push: func(T) void
     pop: func() T
+}
+
+define struct object, class Object {
 }
