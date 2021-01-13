@@ -1,4 +1,3 @@
-
 package main
 
 import (
@@ -11,18 +10,18 @@ var classCount = 0
 func createNewClass() (string, *Class) {
 	name := strconv.Itoa(classCount)
 	s := Class{}
-	s.props = map[string]ClassProperty{}
+	s.props = map[string]*Property{}
 	allClasses[name] = s
 	return name, &s
 }
 
 type Class struct {
 	isLocal bool
-	props map[string]ClassProperty
+	props   map[string]*Property
 }
 
-type ClassProperty struct {
-	_type string
-	_typeOfType string
-	_default string
-}
+// type ClassProperty struct {
+// 	_type string
+// 	_typeOfType string
+// 	_default string
+// }

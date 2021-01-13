@@ -4,7 +4,7 @@ define struct string, class String {
     charAt: func(int) string
     length: int
     split: func(string) array<string>
-    substr: func(int, int?) string
+    substr: func(int, int|null|undefined) string
 }
 
 define struct number, class Number {

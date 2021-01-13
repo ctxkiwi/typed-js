@@ -371,8 +371,20 @@ func (c *Compile) handleNextWord() {
 		return
 	}
 
+	isDefine := token == "define"
+	if isDefine {
+		token = c.getNextTokenSameLine()
+	}
+
 	if token == "struct" || token == "local" {
-		c.handleStruct(token == "local")
+		isLocal := token == "local"
+		if isLocal {
+			token = c.getNextTokenSameLine()
+			if token != "struct" {
+				c.throwAtLine("Unexpected token: " + token)
+			}
+		}
+		c.handleStruct(isLocal, isDefine)
 		return
 	}
 

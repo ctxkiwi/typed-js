@@ -1,24 +1,18 @@
 package main
 
-func (c *Compile) handleStruct(isLocal bool) {
+func (c *Compile) handleStruct(isLocal bool, isDefine bool) {
 
-	if isLocal {
-
-		token := c.getNextToken()
-		if token != "struct" {
-			c.throwAtLine("Unexpected token: " + token)
-		}
-	} else {
+	if !isLocal {
 		if scopeIndex > 0 {
 			c.throwAtLine("You must use 'local' to create a local struct")
 		}
 	}
 
-	name := c.getNextToken()
+	name := c.getNextTokenSameLine()
 	c.checkVarNameSyntax([]byte(name))
 
 	if c.typeExists(name) {
-		c.throwAtLine("Struct name already in use: " + name)
+		c.throwAtLine("Struct/class name already in use: " + name)
 	}
 
 	globalName, s := createNewStruct()
@@ -27,10 +21,26 @@ func (c *Compile) handleStruct(isLocal bool) {
 	scope := scopes[scopeIndex]
 	scope.structs[name] = globalName
 
-	// Get fields
-	c.expectToken("{")
+	token := c.getNextTokenSameLine()
+	var class *Class = nil
+	if isDefine && token == "," {
+		c.expectToken("class")
+		className := c.getNextTokenSameLine()
+		c.checkVarNameSyntax([]byte(className))
+		if c.typeExists(className) {
+			c.throwAtLine("Struct/class name already in use: " + className)
+		}
+		globalName, class = createNewClass()
+		scope.classes[className] = globalName
+		token = c.getNextTokenSameLine()
+	}
 
-	token := c.getNextToken()
+	// Get fields
+	if token != "{" {
+		c.throwAtLine("Unexpected token: " + token)
+	}
+
+	token = c.getNextToken()
 	for token != "}" {
 		if token == "" {
 			c.throwAtLine("Unexpected end of code")
@@ -57,7 +67,10 @@ func (c *Compile) handleStruct(isLocal bool) {
 		}
 
 		// Store property
-		s.props[varName] = prop
+		s.props[varName] = &prop
+		if class != nil {
+			class.props[varName] = &prop
+		}
 
 		token = c.getNextToken()
 	}
