@@ -21,7 +21,8 @@ type Struct struct {
 }
 
 type Property struct {
-	_type       string
-	_typeOfType string
-	_default    string
+	varType *VarType
+	// _type       string
+	// _typeOfType string
+	_default string
 }

@@ -8,17 +8,17 @@ define struct string, class String {
 }
 
 define struct number, class Number {
-    toExponential: func(int?) string
-    toFixed: func(int?) string
-    toLocaleString: func(string?, object<any>?) string
-    toPrecision: func(int?) string
+    toExponential: func(int|undefined) string
+    toFixed: func(int|undefined) string
+    toLocaleString: func(string|null|undefined, object<any>|undefined) string
+    toPrecision: func(int|undefined) string
 }
 
-define struct bool, class Number {
+define struct bool, class Bool {
     toString: func() string
 }
 
-define struct array, class Number {
+define struct array, class Array {
     indexOf: func(string) int
     length: int
     push: func(T) void

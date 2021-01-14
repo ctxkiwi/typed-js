@@ -6,7 +6,7 @@ import (
 	"sort"
 )
 
-var basicTypes = []string{"bool", "int", "float", "string", "array", "object", "func"}
+var basicTypes = []string{"bool", "int", "float", "string", "array", "object", "func", "any", "T", "void"}
 var basicValues = []string{"true", "false", "undefined", "null", "[]", "{}"}
 
 var scopes []*Scope
@@ -145,6 +145,7 @@ func (c *Compile) getNextTokenSameLine() string {
 			continue
 		}
 
+		// If any special character
 		if len(word) == 0 {
 			c.index++
 			c.col++
@@ -178,6 +179,7 @@ func (c *Compile) getNextCharacterOnLine() string {
 		c.col++
 
 		if isWhiteSpace(charInt) {
+			c.lastTokenCol++
 			continue
 		}
 
@@ -210,6 +212,7 @@ func (c *Compile) getNextValueToken() (string, string) {
 			word += char
 			c.index++
 			c.col++
+			c.lastTokenCol++
 			if char == endStrChar {
 				break
 			}
@@ -317,41 +320,71 @@ func (c *Compile) getNextValueToken() (string, string) {
 	return "", ""
 }
 
-func (c *Compile) getNextType() string {
-	result := ""
+func (c *Compile) getNextType() *VarType {
 	token := c.getNextTokenSameLine()
+	result := VarType{
+		name: token,
+	}
 	i := sort.SearchStrings(basicTypes, token)
 	if i < len(basicTypes) && basicTypes[i] == token {
-		result += token
 		if token == "array" || token == "object" {
 			c.expectToken("<")
-			result += ":"
-			subtype := c.getNextType()
-			result += subtype
+			result.subtype = c.getNextType()
+			c.expectToken(">")
 		}
 		if token == "func" {
 			c.expectToken("(")
-			result += ":"
 			currentIndex := c.index
-			ntoken := c.getNextToken()
-			c.index = currentIndex
+			currentCol := c.col
+			ntoken := c.getNextTokenSameLine()
+			if ntoken != ")" {
+				c.col = currentCol
+				c.index = currentIndex
+			}
 			for ntoken != ")" {
 				ptype := c.getNextType()
-				result += "|" + ptype
-				ntoken = c.getNextToken()
+				result.paramTypes = append(result.paramTypes, ptype)
+				ntoken = c.getNextTokenSameLine()
 				if ntoken != "," && ntoken != ")" {
 					c.throwAtLine("Unexpected token: " + ntoken)
 				}
 			}
-			result += ":"
-			result += c.getNextType()
+			rtype := c.getNextType()
+			result.returnType = rtype
 		}
-		return result
+	} else {
+		if !c.typeExists(token) {
+			c.throwAtLine("Unknown type: " + token)
+		}
+		nchar := c.readNextChar()
+		if nchar == "<" {
+			c.expectToken("<")
+			result.subtype = c.getNextType()
+			c.expectToken(">")
+		}
 	}
-	if !c.typeExists(token) {
-		c.throwAtLine("Unknown type: " + token)
+	nchar := c.readNextChar()
+	for nchar == "|" {
+		c.expectToken("|")
+		ptype := c.getNextTokenSameLine()
+		if ptype == "null" {
+			result.nullable = true
+		} else if ptype == "undefined" {
+			result.undefined = true
+		} else {
+			c.throwAtLine("Expected null or undefined")
+		}
+		nchar = c.readNextChar()
 	}
-	return token
+
+	return &result
+}
+
+func (c *Compile) readNextChar() string {
+	if c.index == c.maxIndex {
+		return ""
+	}
+	return string(c.code[c.index])
 }
 
 func (c *Compile) expectToken(token string) {
@@ -419,8 +452,6 @@ func (c *Compile) handleNextWord() {
 	}
 
 	// Unknown
-	c.col = c.lastTokenCol
-
 	if isVarNameSyntax([]byte(token)) {
 		c.throwAtLine("Unknown variable/function/struct: " + token)
 	}
@@ -428,25 +459,8 @@ func (c *Compile) handleNextWord() {
 	c.throwAtLine("Unknown token: " + token)
 }
 
-func (c *Compile) getTypeOfType(_type string) (string, bool) {
-	i := sort.SearchStrings(basicTypes, _type)
-	if i < len(basicTypes) && basicTypes[i] == _type {
-		return "basic", true
-	}
-	_, ok := c.getStruct(_type)
-	if ok {
-		return "struct", true
-	}
-	_, ok = c.getClass(_type)
-	if ok {
-		return "class", true
-	}
-	return "", false
-}
-
 func (c *Compile) checkVarNameSyntax(name []byte) {
 	if !isVarNameSyntax(name) {
-		c.col = c.lastTokenCol
 		c.throwAtLine("Invalid variable name: " + string(name))
 	}
 }
@@ -514,7 +528,7 @@ func (c *Compile) throwAtLine(msg string) {
 	fmt.Print("\033[31m") // Color red
 	i := 0
 	mark := ""
-	for i < c.col {
+	for i < c.lastTokenCol {
 		mark += " "
 		i++
 	}

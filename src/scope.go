@@ -135,7 +135,7 @@ func (c *Compile) assignValue(_type string, _typeOfType string) {
 			c.expectToken(":")
 			c.result += ":"
 			// Read value
-			c.assignValue(prop._type, prop._typeOfType)
+			c.assignValue(prop.varType.name, prop.varType.toft)
 
 			token = c.getNextToken()
 			if token == "," {
