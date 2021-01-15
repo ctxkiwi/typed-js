@@ -83,7 +83,7 @@ func srcCoreTypesTjs() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "src/core/types.tjs", size: 679, mode: os.FileMode(420), modTime: time.Unix(1610664263, 0)}
+	info := bindataFileInfo{name: "src/core/types.tjs", size: 679, mode: os.FileMode(420), modTime: time.Unix(1610745982, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }

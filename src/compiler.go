@@ -8,6 +8,7 @@ import (
 
 var basicTypes = []string{"bool", "int", "float", "string", "array", "object", "func", "any", "T", "void"}
 var basicValues = []string{"true", "false", "undefined", "null", "[]", "{}"}
+var operators = []string{"+", "-", "*", "/", "==", "===", "<=", ">=", "&&", "||", "++", "--"}
 
 var scopes []*Scope
 var scopeIndex = -1
@@ -64,10 +65,13 @@ func (c *Compile) createNewScope() {
 	scopeIndex++
 }
 
-func (c *Compile) getNextToken() string {
+func (c *Compile) getNextToken(readOnly bool, sameLine bool) string {
 
-	c.lastTokenCol = c.col
-	c.whitespace = ""
+	indexAtStart := c.index
+	if !readOnly {
+		c.lastTokenCol = c.col
+		c.whitespace = ""
+	}
 
 	word := ""
 	for c.index <= c.maxIndex {
@@ -76,11 +80,26 @@ func (c *Compile) getNextToken() string {
 		char := string(charInt)
 
 		if isNewLine(charInt) {
+			if sameLine {
+				if len(word) == 0 && !readOnly {
+					c.throwAtLine("Unexpected new line")
+				}
+				break
+			}
 			c.index++
-			c.line++
-			c.col = 0
-			c.lastTokenCol = 0
-			c.whitespace = "\n"
+			if !readOnly {
+				c.line++
+				c.col = 0
+				c.lastTokenCol = 0
+				c.whitespace = ""
+				lastChars := ""
+				if len(c.result) > 1 {
+					lastChars = c.result[len(c.result)-2:]
+					if lastChars != "\n\n" {
+						c.result += "\n"
+					}
+				}
+			}
 			if len(word) == 0 {
 				continue
 			}
@@ -89,26 +108,37 @@ func (c *Compile) getNextToken() string {
 
 		if isWhiteSpace(charInt) && len(word) == 0 {
 			c.index++
-			c.col++
-			c.lastTokenCol++
-			c.whitespace += char
+			if !readOnly {
+				c.col++
+				c.lastTokenCol++
+				c.whitespace += char
+			}
 			continue
 		}
 
 		if isVarNameChar(charInt) || (len(word) == 0 && char == "#") {
 			word += char
 			c.index++
-			c.col++
+			if !readOnly {
+				c.col++
+			}
 			continue
 		}
 
 		if len(word) == 0 {
 			c.index++
-			c.col++
-			return char
+			if !readOnly {
+				c.col++
+			}
+			word = char
+			break
 		}
 
 		break
+	}
+
+	if readOnly {
+		c.index = indexAtStart
 	}
 
 	return word
@@ -353,7 +383,13 @@ func (c *Compile) getNextType() *VarType {
 			result.returnType = rtype
 		}
 	} else {
-		if !c.typeExists(token) {
+		_, foundStruct := c.getStruct(token)
+		_, foundClass := c.getStruct(token)
+		if foundStruct {
+			result.toft = "struct"
+		} else if foundClass {
+			result.toft = "class"
+		} else {
 			c.throwAtLine("Unknown type: " + token)
 		}
 		nchar := c.readNextChar()
@@ -396,10 +432,10 @@ func (c *Compile) expectToken(token string) {
 
 func (c *Compile) handleNextWord() {
 
-	token := c.getNextToken()
+	token := c.getNextToken(false, false)
 
 	if token == "#" {
-		word := c.getNextToken()
+		word := c.getNextToken(false, false)
 		c.handleMacro(word)
 		return
 	}
@@ -440,13 +476,19 @@ func (c *Compile) handleNextWord() {
 		return
 	}
 
-	_typeOfType, ok := c.getTypeOfType(token)
-	if ok {
-		c.declareVariable(token, _typeOfType)
+	// Check if type/struct/class
+	if c.isValidType(token) {
+		c.index -= len(token)
+		c.col -= len(token)
+		if c.col < 0 {
+			c.col = 0
+		}
+		_type := c.getNextType()
+		c.declareVariable(_type)
 		return
 	}
 
-	_, ok = c.getVar(token)
+	_, ok := c.getVar(token)
 	if ok {
 		c.throwAtLine("Variables not ready yet")
 	}
@@ -516,6 +558,14 @@ func (c *Compile) typeExists(name string) bool {
 		sci--
 	}
 	return false
+}
+
+func (c *Compile) isValidType(token string) bool {
+	i := sort.SearchStrings(basicTypes, token)
+	if i < len(basicTypes) && basicTypes[i] == token {
+		return true
+	}
+	return c.typeExists(token)
 }
 
 func (c *Compile) throwAtLine(msg string) {

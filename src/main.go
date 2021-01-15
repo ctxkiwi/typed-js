@@ -51,6 +51,7 @@ func main() {
 	// Sort global arrays
 	sort.Strings(basicTypes)
 	sort.Strings(basicValues)
+	sort.Strings(operators)
 
 	// Compile
 	start := time.Now()

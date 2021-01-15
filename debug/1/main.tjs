@@ -8,6 +8,8 @@ Person x = {
     _fn: "Jojo"
 }
 
-//array arr = []
+array<Person> arr = []
+
+number x = 1
 
 //console.log(x);

@@ -40,7 +40,7 @@ func (c *Compile) handleStruct(isLocal bool, isDefine bool) {
 		c.throwAtLine("Unexpected token: " + token)
 	}
 
-	token = c.getNextToken()
+	token = c.getNextToken(false, false)
 	for token != "}" {
 		if token == "" {
 			c.throwAtLine("Unexpected end of code")
@@ -72,7 +72,7 @@ func (c *Compile) handleStruct(isLocal bool, isDefine bool) {
 			class.props[varName] = &prop
 		}
 
-		token = c.getNextToken()
+		token = c.getNextToken(false, false)
 	}
 
 }
