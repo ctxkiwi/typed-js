@@ -11,10 +11,12 @@ type VarType struct {
 	name       string
 	toft       string
 	subtype    *VarType
+	props      map[string]*VarType
 	nullable   bool
 	undefined  bool
 	paramTypes []*VarType
 	returnType *VarType
+	assignable bool
 }
 
 func (c *Compile) getTypeOfType(_type string) (string, bool) {
@@ -40,7 +42,7 @@ func (t *VarType) isCompatible(at *VarType) bool {
 	if t.name != at.name {
 		nameLower := strings.ToLower(t.name)
 		i := sort.SearchStrings(structsEqualToClass, nameLower)
-		if !(i < len(structsEqualToClass) && structsEqualToClass[i] == nameLower && nameLower == strings.ToLower(at.name)) {
+		if i < len(structsEqualToClass) && structsEqualToClass[i] == nameLower && nameLower != strings.ToLower(at.name) {
 			return false
 		}
 	}

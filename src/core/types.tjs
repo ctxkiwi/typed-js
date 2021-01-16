@@ -27,3 +27,6 @@ define struct array, class Array {
 
 define struct object, class Object {
 }
+
+define struct func {
+}

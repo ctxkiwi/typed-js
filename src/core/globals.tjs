@@ -1,0 +1,6 @@
+
+define local struct _console {
+    log: func(string) void
+}
+
+define _console console

@@ -14,6 +14,10 @@ func (c *Compile) handleStruct(isLocal bool, isDefine bool) {
 	if c.typeExists(name) {
 		c.throwAtLine("Struct/class name already in use: " + name)
 	}
+	_, ok := c.getVar(name)
+	if ok {
+		c.throwAtLine("Name already used as a variable: " + name)
+	}
 
 	globalName, s := createNewStruct()
 	s.isLocal = isLocal

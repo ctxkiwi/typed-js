@@ -50,37 +50,40 @@ func (s *Scope) getVar(name string) (*Var, bool) {
 	return &result, ok
 }
 
-func (c *Compile) declareVariable(_type *VarType) {
+func (c *Compile) declareVariable(_type *VarType, isDefine bool) {
 	varName := c.getNextToken(false, true)
 	c.checkVarNameSyntax([]byte(varName))
 	_, ok := c.getVar(varName)
 	if ok {
 		c.throwAtLine("Variable name already in use: " + varName)
 	}
-	c.result += c.whitespace + "var " + varName
-	c.expectToken("=")
-	c.result += " = "
-	rightType := c.assignValue(_type)
-	if !_type.isCompatible(rightType) {
-		c.throwTypeError(_type, rightType)
+	if c.typeExists(varName) {
+		c.throwAtLine("Name already used as a class/struct: " + varName)
 	}
-	c.result += ";"
+	if !isDefine {
+		c.result += c.whitespace + "var " + varName
+		c.expectToken("=")
+		c.result += " = "
+		rightType := c.assignValue()
+		if !_type.isCompatible(rightType) {
+			c.throwTypeError(_type, rightType)
+		}
+		c.result += ";"
+	}
 	scope := scopes[scopeIndex]
 	scope.vars[varName] = Var{
 		_type: _type,
 	}
-	// value, _ := c.getNextValueToken()
-	// c.result += value
 }
 
-func (c *Compile) assignValue(leftType *VarType) *VarType {
+func (c *Compile) assignValue() *VarType {
 
 	var result *VarType
 
 	token := c.getNextToken(false, true)
 	if token == "(" {
 		c.result += "("
-		result = c.assignValue(leftType)
+		result = c.assignValue()
 		c.expectToken(")")
 		c.result += ")"
 	} else if isNumberChar([]byte(token)[0]) {
@@ -162,6 +165,12 @@ func (c *Compile) assignValue(leftType *VarType) *VarType {
 	} else if token == "[" {
 		// Array
 		c.result += c.whitespace + "["
+
+		returnType := VarType{
+			name:       "array",
+			assignable: false,
+		}
+
 		token = c.getNextToken(true, false)
 		if token == "]" {
 			token = c.getNextToken(false, false)
@@ -171,9 +180,19 @@ func (c *Compile) assignValue(leftType *VarType) *VarType {
 					c.throwAtLine("Unexpected end of code")
 				}
 
-				valueType := c.assignValue(leftType.subtype)
-				if !leftType.subtype.isCompatible(valueType) {
-					c.throwTypeError(leftType.subtype, valueType)
+				subType := c.assignValue()
+				if returnType.subtype == nil {
+					returnType.subtype = subType
+				} else {
+					if subType.name == "null" {
+						returnType.subtype.nullable = true
+					}
+					if subType.name == "undefined" {
+						returnType.subtype.undefined = true
+					}
+					if !returnType.subtype.isCompatible(subType) {
+						c.throwTypeError(returnType.subtype, subType)
+					}
 				}
 
 				token = c.getNextToken(false, false)
@@ -184,13 +203,18 @@ func (c *Compile) assignValue(leftType *VarType) *VarType {
 		}
 		c.result += c.whitespace + "]"
 
-		result = leftType
+		result = &returnType
 
 	} else if token == "{" {
 
 		c.result += "{"
+		returnType := VarType{
+			name:       "object",
+			props:      map[string]*VarType{},
+			assignable: false,
+		}
 
-		s, _ := c.getStruct(leftType.name)
+		// s, _ := c.getStruct(leftType.name)
 		token := c.getNextToken(false, false)
 		for token != "}" {
 			if token == "" {
@@ -199,14 +223,15 @@ func (c *Compile) assignValue(leftType *VarType) *VarType {
 			c.checkVarNameSyntax([]byte(token))
 			varName := token
 			c.result += c.whitespace + varName
-			prop, ok := s.props[varName]
-			if !ok {
-				c.throwAtLine("Unknown property '" + varName + "' in struct '" + leftType.name + "'")
-			}
+			// prop, ok := s.props[varName]
+			// if !ok {
+			// 	c.throwAtLine("Unknown property '" + varName + "' in struct '" + leftType.name + "'")
+			// }
 			c.expectToken(":")
 			c.result += ":"
 			// Read value
-			c.assignValue(prop.varType)
+			propType := c.assignValue()
+			returnType.props[varName] = propType
 
 			token = c.getNextToken(false, false)
 			if token == "," {
@@ -219,9 +244,60 @@ func (c *Compile) assignValue(leftType *VarType) *VarType {
 
 		//
 		c.result += c.whitespace + "}"
-		result = leftType
+		result = &returnType
 	} else {
 		c.throwAtLine("Setting value type '" + token + "' is not supported yet")
+	}
+
+	// Handle trailing . [ or (
+	for result.toft == "struct" || result.toft == "class" || result.name == "func" || result.name == "array" {
+		nextChar := c.readNextChar()
+		if (result.name == "array") && nextChar == "[" {
+
+		} else if (result.name == "func") && nextChar == "(" {
+			// Function
+			// Check param types
+
+			// Set result to function returnType
+
+		} else if (result.toft == "struct" || result.toft == "class") && (nextChar == "." || nextChar == "[") {
+			if nextChar == "[" {
+				c.throwAtLine("Dynamic properties are not allowed")
+			}
+			propName := c.getNextToken(false, true)
+			if len(c.whitespace) > 0 {
+				c.throwAtLine("Unexpected whitespace")
+			}
+			// check if struct
+			s, ok := c.getStruct(result.name)
+			if ok {
+				prop, ok := s.props[propName]
+				if !ok {
+					c.throwAtLine("Undefined property: " + propName + " on struct: " + result.name)
+				}
+				result = c.assignValue()
+				if !prop.varType.isCompatible(result) {
+					c.throwTypeError(prop.varType, result)
+				}
+			} else {
+				// check if class
+				class, ok := c.getClass(result.name)
+				if ok {
+					prop, ok := class.props[propName]
+					if !ok {
+						c.throwAtLine("Undefined property: " + propName + " on class: " + result.name)
+					}
+					result = c.assignValue()
+					if !prop.varType.isCompatible(result) {
+						c.throwTypeError(prop.varType, result)
+					}
+				} else {
+					c.throwAtLine("Cannot load struct/class: " + result.name + " (compiler bug)")
+				}
+			}
+		} else {
+			break
+		}
 	}
 
 	// Handle operators
@@ -229,8 +305,12 @@ func (c *Compile) assignValue(leftType *VarType) *VarType {
 	i := sort.SearchStrings(operators, nextToken)
 	if i < len(operators) && operators[i] == nextToken {
 		nextToken = c.getNextToken(false, false)
-		c.result += nextToken
-		rightType := c.assignValue(result)
+		if nextToken != "++" && nextToken != "--" {
+			c.result += " " + nextToken + " "
+		} else {
+			c.result += nextToken
+		}
+		rightType := c.assignValue()
 		showError := false
 		leftLower := strings.ToLower(result.name)
 		rightLower := strings.ToLower(rightType.name)

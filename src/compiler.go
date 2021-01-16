@@ -521,21 +521,34 @@ func (c *Compile) handleNextWord() {
 			c.col = 0
 		}
 		_type := c.getNextType()
-		c.declareVariable(_type)
+		c.declareVariable(_type, isDefine)
 		return
 	}
 
-	_, ok := c.getVar(token)
-	if ok {
+	_, isVar := c.getVar(token)
+	if isVar || token == "(" || token == "[" {
+		c.index -= len(token)
+		c.col -= len(token)
+		_ = c.assignValue()
+		// var vtype *VarType
+		// vtype = v._type
+		// returnType, assignable := c.getReturnType(v._type)
+
+		// c.setVariable(_type, isDefine)
+		// nextChar := c.readNextChar()
+		// if nextChar == "." || nextChar == "[" || nextChar == "(" {
+		// 	c.throwAtLine("Variables not ready yet")
+		// }
+		// nextToken := c.getNextToken(true, true)
 		c.throwAtLine("Variables not ready yet")
 	}
 
 	// Unknown
 	if isVarNameSyntax([]byte(token)) {
-		c.throwAtLine("Unknown variable/function/struct: " + token)
+		c.throwAtLine("Unknown variable: " + token)
 	}
 
-	c.throwAtLine("Unknown token: " + token)
+	c.throwAtLine("Unexpected token: " + token)
 }
 
 func (c *Compile) getStruct(name string) (*Struct, bool) {

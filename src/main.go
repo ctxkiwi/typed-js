@@ -63,6 +63,10 @@ func main() {
 		os.Exit(1)
 	}
 	jscode := compileCode("src/core/types.tjs", []byte(data))
+
+	data, _ = Asset("src/core/globals.tjs")
+	jscode += compileCode("src/core/globals.tjs", []byte(data))
+
 	jscode += compileCode(inputFilepath, code)
 	elapsed := time.Since(start)
 
