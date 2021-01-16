@@ -61,36 +61,47 @@ func (c *Compile) declareVariable(_type *VarType) {
 	c.result += c.whitespace + "var " + varName
 	c.expectToken("=")
 	c.result += " = "
-	c.assignValue(_type)
+	rightType := c.assignValue(_type)
 	c.result += ";"
+	if !_type.isCompatible(rightType) {
+		c.throwTypeError(_type, rightType)
+	}
 	// value, _ := c.getNextValueToken()
 	// c.result += value
 }
 
-func (c *Compile) assignValue(_type *VarType) {
+func (c *Compile) assignValue(leftType *VarType) *VarType {
+
+	var result *VarType
 
 	token := c.getNextTokenSameLine()
 	if token == "(" {
 		c.result += "("
-		c.assignValue(_type)
+		result = c.assignValue(leftType)
 		c.expectToken(")")
 		c.result += ")"
-		return
-	}
-	if isVarNameSyntax([]byte(token)) {
+	} else if isVarNameSyntax([]byte(token)) {
+		// Vars
 		_, ok := c.getVar(token)
 		if ok {
 			// Is variable name
 			c.result += token
 			// ...
 		}
-	}
-
-	if _type.name == "string" {
-
-		if token != "\"" && token != "'" {
-			c.throwAtLine("Unexpected token: " + token)
+	} else if token == "null" {
+		c.result += "null"
+		_type := VarType{
+			name: "null",
 		}
+		result = &_type
+	} else if token == "undefined" {
+		c.result += "undefined"
+		_type := VarType{
+			name: "undefined",
+		}
+		result = &_type
+	} else if token == "\"" || token == "'" {
+		// String
 		c.result += token
 		char := ""
 		lastChar := ""
@@ -116,11 +127,13 @@ func (c *Compile) assignValue(_type *VarType) {
 			c.throwAtLine("You forgot to close a string somewhere")
 		}
 
-	} else if _type.name == "array" {
-
-		if token != "[" {
-			c.throwAtLine("Unexpected token: " + token + " , expected: [")
+		_type := VarType{
+			name: "string",
 		}
+		result = &_type
+
+	} else if token == "[" {
+		// Array
 		c.result += c.whitespace + "["
 		token = c.getNextToken(false, false)
 		for token != "]" {
@@ -128,7 +141,10 @@ func (c *Compile) assignValue(_type *VarType) {
 				c.throwAtLine("Unexpected end of code")
 			}
 
-			c.assignValue(_type)
+			valueType := c.assignValue(leftType.subtype)
+			if !leftType.isCompatible(valueType) {
+				c.throwTypeError(leftType, valueType)
+			}
 
 			token = c.getNextToken(false, false)
 			if token == "," {
@@ -138,24 +154,13 @@ func (c *Compile) assignValue(_type *VarType) {
 		}
 		c.result += c.whitespace + "]"
 
-	} else if _type.toft == "struct" {
-		if token == "null" {
-			if !_type.nullable {
-				c.throwAtLine("This variable is not nullable")
-			}
-			return
-		} else if token == "undefined" {
-			if !_type.undefined {
-				c.throwAtLine("This variable cannot be undefined")
-			}
-			return
-		}
-		if token != "{" {
-			c.throwAtLine("Expected token: {")
-		}
+		result = leftType
+
+	} else if token == "{" {
+
 		c.result += "{"
 
-		s, _ := c.getStruct(_type.name)
+		s, _ := c.getStruct(leftType.name)
 		token := c.getNextToken(false, false)
 		for token != "}" {
 			if token == "" {
@@ -166,7 +171,7 @@ func (c *Compile) assignValue(_type *VarType) {
 			c.result += c.whitespace + varName
 			prop, ok := s.props[varName]
 			if !ok {
-				c.throwAtLine("Unknown property '" + varName + "' in struct '" + _type.name + "'")
+				c.throwAtLine("Unknown property '" + varName + "' in struct '" + leftType.name + "'")
 			}
 			c.expectToken(":")
 			c.result += ":"
@@ -179,10 +184,15 @@ func (c *Compile) assignValue(_type *VarType) {
 				token = c.getNextToken(false, false)
 			}
 		}
+
+		// todo: Autofill missing fields
+
+		//
 		c.result += c.whitespace + "}"
+		result = leftType
 
-		// } else if _type.toft == "class" {
-
+	} else if token == "new" {
+		c.throwAtLine("Class values not supported yet")
 	} else {
 		c.throwAtLine("Setting value type '" + token + "' is not supported yet")
 	}
@@ -192,34 +202,22 @@ func (c *Compile) assignValue(_type *VarType) {
 	i := sort.SearchStrings(operators, nextToken)
 	if i < len(operators) && operators[i] == nextToken {
 		nextToken = c.getNextToken(false, false)
+		rightType := c.assignValue(result)
 		c.result += nextToken
+		showError := false
 		switch nextToken {
-		case "+", "-", "*", "/":
-			if nextToken == "+" && (_type.name == "string" || _type.name == "String") {
-				rightType := VarType{
-					name: "string",
-				}
-				c.assignValue(&rightType)
-			} else {
-				rightType := VarType{
-					name: "number",
-				}
-				c.assignValue(&rightType)
-			}
-		// case "==", "===":
+		case "+":
+		case "-", "*", "/":
+		case "==", "===":
 		case "<=", ">=":
-			rightType := VarType{
-				name: "number",
-			}
-			c.assignValue(&rightType)
 		case "&&", "||":
-			rightType := VarType{
-				name: "bool",
-			}
-			c.assignValue(&rightType)
 		default:
 			c.throwAtLine("Operator not supported yet: '" + nextToken + "'")
 		}
+		if showError {
+			c.throwAtLine("Cannot use operator '" + nextToken + "' on type " + result.displayName() + " && " + rightType.displayName() + "")
+		}
 	}
 
+	return result
 }
