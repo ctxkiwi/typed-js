@@ -135,21 +135,20 @@ func (c *Compile) assignValue(leftType *VarType) *VarType {
 	} else if token == "[" {
 		// Array
 		c.result += c.whitespace + "["
-		token = c.getNextToken(false, false)
+		token = c.getNextToken(true, false)
 		for token != "]" {
 			if token == "" {
 				c.throwAtLine("Unexpected end of code")
 			}
 
 			valueType := c.assignValue(leftType.subtype)
-			if !leftType.isCompatible(valueType) {
-				c.throwTypeError(leftType, valueType)
+			if !leftType.subtype.isCompatible(valueType) {
+				c.throwTypeError(leftType.subtype, valueType)
 			}
 
 			token = c.getNextToken(false, false)
 			if token == "," {
 				c.result += ","
-				token = c.getNextToken(false, false)
 			}
 		}
 		c.result += c.whitespace + "]"

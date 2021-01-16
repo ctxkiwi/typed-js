@@ -1,6 +1,8 @@
 package main
 
-import "sort"
+import (
+	"sort"
+)
 
 type VarType struct {
 	name       string
@@ -29,6 +31,9 @@ func (c *Compile) getTypeOfType(_type string) (string, bool) {
 }
 
 func (t *VarType) isCompatible(at *VarType) bool {
+	if at == nil {
+		return false
+	}
 	if at.nullable && !t.nullable {
 		return false
 	}
@@ -52,6 +57,11 @@ func (t *VarType) isCompatible(at *VarType) bool {
 }
 
 func (t *VarType) displayName() string {
+
+	if t == nil {
+		return "???"
+	}
+
 	result := t.name
 
 	if len(t.paramTypes) > 0 {
@@ -80,5 +90,5 @@ func (t *VarType) displayName() string {
 }
 
 func (c *Compile) throwTypeError(t *VarType, at *VarType) {
-	c.throwAtLine("Types must be compatible")
+	c.throwAtLine("Types not compatible: " + t.displayName() + " <-> " + at.displayName() + "")
 }

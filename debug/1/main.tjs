@@ -8,7 +8,7 @@ Person x = {
     _fn: "Jojo"
 }
 
-array<Person> arr = []
+array<Person> arr = ["test"]
 
 //number x = 1
 
