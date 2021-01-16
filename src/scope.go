@@ -80,6 +80,21 @@ func (c *Compile) assignValue(leftType *VarType) *VarType {
 		result = c.assignValue(leftType)
 		c.expectToken(")")
 		c.result += ")"
+	} else if isNumberChar([]byte(token)[0]) {
+		// Number
+		number := token
+		nextChar := c.readNextChar()
+		if nextChar == "." {
+			number += c.getNextToken(false, true)
+			number += c.getNextToken(false, true)
+		}
+		if !isNumberSyntax([]byte(number)) {
+			c.throwAtLine("Invalid number")
+		}
+		_type := VarType{
+			name: "number",
+		}
+		result = &_type
 	} else if isVarNameSyntax([]byte(token)) {
 		// Vars
 		_, ok := c.getVar(token)
@@ -110,6 +125,8 @@ func (c *Compile) assignValue(leftType *VarType) *VarType {
 			charInt := c.code[c.index]
 			char = string(charInt)
 			c.index++
+			c.col++
+			c.lastTokenCol++
 			c.result += char
 			if isNewLine(charInt) {
 				if lastChar != "\\" {
@@ -136,19 +153,23 @@ func (c *Compile) assignValue(leftType *VarType) *VarType {
 		// Array
 		c.result += c.whitespace + "["
 		token = c.getNextToken(true, false)
-		for token != "]" {
-			if token == "" {
-				c.throwAtLine("Unexpected end of code")
-			}
-
-			valueType := c.assignValue(leftType.subtype)
-			if !leftType.subtype.isCompatible(valueType) {
-				c.throwTypeError(leftType.subtype, valueType)
-			}
-
+		if token == "]" {
 			token = c.getNextToken(false, false)
-			if token == "," {
-				c.result += ","
+		} else {
+			for token != "]" {
+				if token == "" {
+					c.throwAtLine("Unexpected end of code")
+				}
+
+				valueType := c.assignValue(leftType.subtype)
+				if !leftType.subtype.isCompatible(valueType) {
+					c.throwTypeError(leftType.subtype, valueType)
+				}
+
+				token = c.getNextToken(false, false)
+				if token == "," {
+					c.result += ","
+				}
 			}
 		}
 		c.result += c.whitespace + "]"

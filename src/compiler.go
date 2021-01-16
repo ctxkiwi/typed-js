@@ -6,7 +6,8 @@ import (
 	"sort"
 )
 
-var basicTypes = []string{"bool", "int", "float", "string", "array", "object", "func", "any", "T", "void"}
+var basicTypes = []string{"bool", "number", "string", "array", "object", "func", "any", "T", "void"}
+var structsEqualToClass = []string{"number", "string", "bool", "array", "object"}
 var basicValues = []string{"true", "false", "undefined", "null", "[]", "{}"}
 var operators = []string{"+", "-", "*", "/", "==", "===", "<=", ">=", "&&", "||", "++", "--"}
 

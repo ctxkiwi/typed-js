@@ -52,6 +52,7 @@ func main() {
 	sort.Strings(basicTypes)
 	sort.Strings(basicValues)
 	sort.Strings(operators)
+	sort.Strings(structsEqualToClass)
 
 	// Compile
 	start := time.Now()

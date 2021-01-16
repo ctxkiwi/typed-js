@@ -1,17 +1,17 @@
 
 define struct string, class String {
-    indexOf: func(string) int
-    charAt: func(int) string
-    length: int
+    indexOf: func(string) number
+    charAt: func(number) string
+    length: number
     split: func(string) array<string>
-    substr: func(int, int|null|undefined) string
+    substr: func(number, number|null|undefined) string
 }
 
 define struct number, class Number {
-    toExponential: func(int|undefined) string
-    toFixed: func(int|undefined) string
+    toExponential: func(number|undefined) string
+    toFixed: func(number|undefined) string
     toLocaleString: func(string|null|undefined, object<any>|undefined) string
-    toPrecision: func(int|undefined) string
+    toPrecision: func(number|undefined) string
 }
 
 define struct bool, class Bool {
@@ -19,8 +19,8 @@ define struct bool, class Bool {
 }
 
 define struct array, class Array {
-    indexOf: func(string) int
-    length: int
+    indexOf: func(string) number
+    length: number
     push: func(T) void
     pop: func() T
 }

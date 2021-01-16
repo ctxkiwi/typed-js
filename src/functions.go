@@ -40,6 +40,23 @@ func isVarNameSyntax(name []byte) bool {
 	return true
 }
 
+func isNumberSyntax(name []byte) bool {
+	hasDot := false
+	for i, char := range name {
+		if i > 0 && string(char) == "." {
+			if hasDot {
+				return false
+			}
+			hasDot = true
+			continue
+		}
+		if !isNumberChar(char) {
+			return false
+		}
+	}
+	return true
+}
+
 func isNumberChar(c byte) bool {
 
 	if c >= 48 && c <= 57 {

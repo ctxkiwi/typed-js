@@ -2,6 +2,7 @@ package main
 
 import (
 	"sort"
+	"strings"
 )
 
 type VarType struct {
@@ -33,6 +34,13 @@ func (c *Compile) getTypeOfType(_type string) (string, bool) {
 func (t *VarType) isCompatible(at *VarType) bool {
 	if at == nil {
 		return false
+	}
+	if t.name != at.name {
+		nameLower := strings.ToLower(t.name)
+		i := sort.SearchStrings(structsEqualToClass, nameLower)
+		if !(i < len(structsEqualToClass) && structsEqualToClass[i] == nameLower && nameLower == strings.ToLower(at.name)) {
+			return false
+		}
 	}
 	if at.nullable && !t.nullable {
 		return false
