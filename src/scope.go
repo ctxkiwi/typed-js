@@ -2,12 +2,11 @@ package main
 
 import (
 	"sort"
+	"strings"
 )
 
 type Var struct {
-	_typeOfType string // basic,struct,class
-	_type       string // string bool int MyStruct MyClass etc...
-	nullable    bool
+	_type *VarType // string bool int MyStruct MyClass etc...
 }
 
 type Scope struct {
@@ -52,7 +51,7 @@ func (s *Scope) getVar(name string) (*Var, bool) {
 }
 
 func (c *Compile) declareVariable(_type *VarType) {
-	varName := c.getNextTokenSameLine()
+	varName := c.getNextToken(false, true)
 	c.checkVarNameSyntax([]byte(varName))
 	_, ok := c.getVar(varName)
 	if ok {
@@ -62,9 +61,13 @@ func (c *Compile) declareVariable(_type *VarType) {
 	c.expectToken("=")
 	c.result += " = "
 	rightType := c.assignValue(_type)
-	c.result += ";"
 	if !_type.isCompatible(rightType) {
 		c.throwTypeError(_type, rightType)
+	}
+	c.result += ";"
+	scope := scopes[scopeIndex]
+	scope.vars[varName] = Var{
+		_type: _type,
 	}
 	// value, _ := c.getNextValueToken()
 	// c.result += value
@@ -74,7 +77,7 @@ func (c *Compile) assignValue(leftType *VarType) *VarType {
 
 	var result *VarType
 
-	token := c.getNextTokenSameLine()
+	token := c.getNextToken(false, true)
 	if token == "(" {
 		c.result += "("
 		result = c.assignValue(leftType)
@@ -88,21 +91,15 @@ func (c *Compile) assignValue(leftType *VarType) *VarType {
 			number += c.getNextToken(false, true)
 			number += c.getNextToken(false, true)
 		}
-		if !isNumberSyntax([]byte(number)) {
+		nextChar = c.readNextChar()
+		if !isNumberSyntax([]byte(number)) || nextChar == "." {
 			c.throwAtLine("Invalid number")
 		}
+		c.result += number
 		_type := VarType{
 			name: "number",
 		}
 		result = &_type
-	} else if isVarNameSyntax([]byte(token)) {
-		// Vars
-		_, ok := c.getVar(token)
-		if ok {
-			// Is variable name
-			c.result += token
-			// ...
-		}
 	} else if token == "null" {
 		c.result += "null"
 		_type := VarType{
@@ -115,6 +112,19 @@ func (c *Compile) assignValue(leftType *VarType) *VarType {
 			name: "undefined",
 		}
 		result = &_type
+	} else if token == "new" {
+		// Classes
+		c.throwAtLine("Class values not supported yet")
+	} else if isVarNameSyntax([]byte(token)) {
+		// Vars
+		_var, ok := c.getVar(token)
+		if ok {
+			// Is variable name
+			c.result += token
+			result = _var._type
+		} else {
+			c.throwAtLine("Undefined variable: " + token)
+		}
 	} else if token == "\"" || token == "'" {
 		// String
 		c.result += token
@@ -210,9 +220,6 @@ func (c *Compile) assignValue(leftType *VarType) *VarType {
 		//
 		c.result += c.whitespace + "}"
 		result = leftType
-
-	} else if token == "new" {
-		c.throwAtLine("Class values not supported yet")
 	} else {
 		c.throwAtLine("Setting value type '" + token + "' is not supported yet")
 	}
@@ -222,15 +229,41 @@ func (c *Compile) assignValue(leftType *VarType) *VarType {
 	i := sort.SearchStrings(operators, nextToken)
 	if i < len(operators) && operators[i] == nextToken {
 		nextToken = c.getNextToken(false, false)
-		rightType := c.assignValue(result)
 		c.result += nextToken
+		rightType := c.assignValue(result)
 		showError := false
+		leftLower := strings.ToLower(result.name)
+		rightLower := strings.ToLower(rightType.name)
 		switch nextToken {
 		case "+":
+			if leftLower == "number" && rightLower == "number" {
+			} else if leftLower == "string" && (rightLower == "bool" || rightLower == "number") {
+				result = createType("string")
+			} else if rightLower == "string" && (leftLower == "bool" || leftLower == "number") {
+				result = createType("string")
+			} else {
+				showError = true
+			}
 		case "-", "*", "/":
+			if leftLower != "number" || rightLower != "number" {
+				showError = true
+			}
 		case "==", "===":
-		case "<=", ">=":
+			if !result.isCompatible(rightType) {
+				showError = true
+				break
+			}
+			result = createType("bool")
+		case "<", ">", "<=", ">=":
+			if (leftLower != "number" && leftLower != "string") || (rightLower != "number" && rightLower != "string") {
+				showError = true
+				break
+			}
+			result = createType("bool")
 		case "&&", "||":
+			if leftLower != "bool" || rightLower != "bool" {
+				showError = true
+			}
 		default:
 			c.throwAtLine("Operator not supported yet: '" + nextToken + "'")
 		}

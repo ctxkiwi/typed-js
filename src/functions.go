@@ -32,12 +32,21 @@ func isVarNameChar(c byte) bool {
 }
 
 func isVarNameSyntax(name []byte) bool {
-	for _, char := range name {
+	for i, char := range name {
+		if i > 0 && isNumberChar(char) {
+			continue
+		}
 		if !isVarNameChar(char) {
 			return false
 		}
 	}
 	return true
+}
+
+func (c *Compile) checkVarNameSyntax(name []byte) {
+	if !isVarNameSyntax(name) {
+		c.throwAtLine("Invalid variable name: " + string(name))
+	}
 }
 
 func isNumberSyntax(name []byte) bool {

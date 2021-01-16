@@ -2,7 +2,7 @@ package main
 
 func (c *Compile) handleComment() {
 
-	token := c.getNextToken(false, false)
+	token := string(c.code[c.index-1])
 
 	if token == "/" {
 		for c.index <= c.maxIndex {

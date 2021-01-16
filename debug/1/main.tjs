@@ -10,6 +10,10 @@ Person x = {
 
 array<string> arr = ["test", "1"]
 
+string x2 = 1 + ""
+
+bool y = x2 == ""
+
 //number x = 1
 
 //console.log(x);

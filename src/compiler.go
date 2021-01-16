@@ -9,7 +9,8 @@ import (
 var basicTypes = []string{"bool", "number", "string", "array", "object", "func", "any", "T", "void"}
 var structsEqualToClass = []string{"number", "string", "bool", "array", "object"}
 var basicValues = []string{"true", "false", "undefined", "null", "[]", "{}"}
-var operators = []string{"+", "-", "*", "/", "==", "===", "<=", ">=", "&&", "||", "++", "--"}
+var operators = []string{"+", "-", "*", "/", "==", "===", "<", ">", "<=", ">=", "&&", "||", "++", "--"}
+var operatorChars = []string{"+", "-", "*", "/", "=", "<", ">", "&", "|"}
 
 var scopes []*Scope
 var scopeIndex = -1
@@ -61,6 +62,7 @@ func (c *Compile) createNewScope() {
 	s := Scope{
 		structs: map[string]string{},
 		classes: map[string]string{},
+		vars:    map[string]Var{},
 	}
 	scopes = append(scopes, &s)
 	scopeIndex++
@@ -117,7 +119,7 @@ func (c *Compile) getNextToken(readOnly bool, sameLine bool) string {
 			continue
 		}
 
-		if isVarNameChar(charInt) || (len(word) == 0 && char == "#") {
+		if isVarNameChar(charInt) || (len(word) > 0 && isNumberChar(charInt)) || (len(word) == 0 && char == "#") {
 			word += char
 			c.index++
 			if !readOnly {
@@ -132,6 +134,40 @@ func (c *Compile) getNextToken(readOnly bool, sameLine bool) string {
 				c.col++
 			}
 			word = char
+			// Comments
+			if char == "/" {
+				nextChar := c.readNextChar()
+				if nextChar == "/" || nextChar == "*" {
+					word += nextChar
+					c.index++
+					if !readOnly {
+						c.col++
+					}
+					break
+				}
+			}
+			// Operators
+			i := sort.SearchStrings(operatorChars, char)
+			if i < len(operatorChars) && operatorChars[i] == char {
+				// If operator char
+				nextChar := c.readNextChar()
+				i = sort.SearchStrings(operatorChars, nextChar)
+				if i < len(operatorChars) && operatorChars[i] == nextChar {
+					word += nextChar
+					c.index++
+					if !readOnly {
+						c.col++
+					}
+				}
+				nextChar = c.readNextChar()
+				if nextChar == "=" {
+					word += nextChar
+					c.index++
+					if !readOnly {
+						c.col++
+					}
+				}
+			}
 			break
 		}
 
@@ -472,7 +508,7 @@ func (c *Compile) handleNextWord() {
 		return
 	}
 
-	if token == "/" {
+	if token == "//" || token == "/*" {
 		c.handleComment()
 		return
 	}
@@ -500,12 +536,6 @@ func (c *Compile) handleNextWord() {
 	}
 
 	c.throwAtLine("Unknown token: " + token)
-}
-
-func (c *Compile) checkVarNameSyntax(name []byte) {
-	if !isVarNameSyntax(name) {
-		c.throwAtLine("Invalid variable name: " + string(name))
-	}
 }
 
 func (c *Compile) getStruct(name string) (*Struct, bool) {

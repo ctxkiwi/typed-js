@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"os"
 	"sort"
 	"strings"
 )
@@ -99,4 +101,18 @@ func (t *VarType) displayName() string {
 
 func (c *Compile) throwTypeError(t *VarType, at *VarType) {
 	c.throwAtLine("Types not compatible: " + t.displayName() + " <-> " + at.displayName() + "")
+}
+
+func createType(name string) *VarType {
+	result := VarType{}
+	switch name {
+	case "string":
+		result.name = "string"
+	case "bool":
+		result.name = "bool"
+	default:
+		fmt.Println("Unknown type: " + name)
+		os.Exit(1)
+	}
+	return &result
 }
