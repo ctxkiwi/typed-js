@@ -16,5 +16,4 @@ bool y = x2 == ""
 test
 */number x3 = 1
 
-define console console2
-console.log(x);
+console.log("test");

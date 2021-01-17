@@ -8,7 +8,7 @@ func (c *Compile) handleStruct(isLocal bool, isDefine bool) {
 		}
 	}
 
-	name := c.getNextTokenSameLine()
+	name := c.getNextToken(false, true)
 	c.checkVarNameSyntax([]byte(name))
 
 	if c.typeExists(name) {
@@ -25,11 +25,11 @@ func (c *Compile) handleStruct(isLocal bool, isDefine bool) {
 	scope := scopes[scopeIndex]
 	scope.structs[name] = globalName
 
-	token := c.getNextTokenSameLine()
+	token := c.getNextToken(false, true)
 	var class *Class = nil
 	if isDefine && token == "," {
 		c.expectToken("class")
-		className := c.getNextTokenSameLine()
+		className := c.getNextToken(false, true)
 		c.checkVarNameSyntax([]byte(className))
 		if c.typeExists(className) {
 			c.throwAtLine("Struct/class name already in use: " + className)

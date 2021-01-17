@@ -4,20 +4,17 @@ import (
 	"strconv"
 )
 
-var allStructs = map[string]Struct{}
+var allStructs = map[string]*VarType{}
 var structCount = 0
 
-func createNewStruct() (string, *Struct) {
+func createNewStruct() (string, *VarType) {
 	name := "struct_" + strconv.Itoa(structCount)
-	s := Struct{}
-	s.props = map[string]*Property{}
-	allStructs[name] = s
-	return name, &s
-}
-
-type Struct struct {
-	isLocal bool
-	props   map[string]*Property
+	vt := VarType{}
+	vt.isStruct = true
+	vt.props = map[string]*Property{}
+	allStructs[name] = &vt
+	structCount++
+	return name, &vt
 }
 
 type Property struct {

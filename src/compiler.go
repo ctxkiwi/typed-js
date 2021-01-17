@@ -388,7 +388,7 @@ func (c *Compile) getNextValueToken() (string, string) {
 }
 
 func (c *Compile) getNextType() *VarType {
-	token := c.getNextTokenSameLine()
+	token := c.getNextToken(false, true)
 	result := VarType{
 		name: token,
 	}
@@ -421,7 +421,7 @@ func (c *Compile) getNextType() *VarType {
 		}
 	} else {
 		_, foundStruct := c.getStruct(token)
-		_, foundClass := c.getStruct(token)
+		_, foundClass := c.getStruct(token) // todo: fix
 		if foundStruct {
 			result.toft = "struct"
 		} else if foundClass {
@@ -529,18 +529,30 @@ func (c *Compile) handleNextWord() {
 	if isVar || token == "(" || token == "[" {
 		c.index -= len(token)
 		c.col -= len(token)
-		_ = c.assignValue()
-		// var vtype *VarType
-		// vtype = v._type
-		// returnType, assignable := c.getReturnType(v._type)
-
-		// c.setVariable(_type, isDefine)
-		// nextChar := c.readNextChar()
-		// if nextChar == "." || nextChar == "[" || nextChar == "(" {
-		// 	c.throwAtLine("Variables not ready yet")
-		// }
-		// nextToken := c.getNextToken(true, true)
-		c.throwAtLine("Variables not ready yet")
+		vt := c.assignValue()
+		if vt.assignable {
+			// Check for = sign
+			nextToken := c.getNextToken(true, false)
+			if nextToken == "=" {
+				nextToken = c.getNextToken(false, false)
+				c.result += "="
+				assignType := c.assignValue()
+				if !vt.isCompatible(assignType) {
+					c.throwTypeError(vt, assignType)
+				}
+			}
+		} else {
+			nextToken := c.getNextToken(true, false)
+			if nextToken == "=" {
+				c.throwAtLine("Cannot assign a value to this")
+			}
+		}
+		nextChar := c.getNextToken(true, false)
+		if nextChar == ";" {
+			nextChar = c.getNextToken(false, false)
+		}
+		c.result += ";"
+		return
 	}
 
 	// Unknown
@@ -551,14 +563,14 @@ func (c *Compile) handleNextWord() {
 	c.throwAtLine("Unexpected token: " + token)
 }
 
-func (c *Compile) getStruct(name string) (*Struct, bool) {
+func (c *Compile) getStruct(name string) (*VarType, bool) {
 	var sci = scopeIndex
 	for sci >= 0 {
 		scope := scopes[sci]
 		realName, ok := scope.structs[name]
 		if ok {
 			result, ok := allStructs[realName]
-			return &result, ok
+			return result, ok
 		}
 		sci--
 	}

@@ -210,7 +210,7 @@ func (c *Compile) assignValue() *VarType {
 		c.result += "{"
 		returnType := VarType{
 			name:       "object",
-			props:      map[string]*VarType{},
+			props:      map[string]*Property{},
 			assignable: false,
 		}
 
@@ -223,15 +223,14 @@ func (c *Compile) assignValue() *VarType {
 			c.checkVarNameSyntax([]byte(token))
 			varName := token
 			c.result += c.whitespace + varName
-			// prop, ok := s.props[varName]
-			// if !ok {
-			// 	c.throwAtLine("Unknown property '" + varName + "' in struct '" + leftType.name + "'")
-			// }
 			c.expectToken(":")
 			c.result += ":"
 			// Read value
 			propType := c.assignValue()
-			returnType.props[varName] = propType
+			newProp := Property{
+				varType: propType,
+			}
+			returnType.props[varName] = &newProp
 
 			token = c.getNextToken(false, false)
 			if token == "," {
@@ -256,18 +255,56 @@ func (c *Compile) assignValue() *VarType {
 
 		} else if (result.name == "func") && nextChar == "(" {
 			// Function
+			nextChar := c.getNextToken(false, true)
+			nextChar = c.getNextToken(true, true)
+			c.result += "("
 			// Check param types
+			params := []*VarType{}
+			for nextChar != ")" {
+				np := c.assignValue()
+				params = append(params, np)
+				nextChar = c.getNextToken(true, false)
+				if nextChar == "," {
+					nextChar = c.getNextToken(false, false)
+					c.result += ","
+					nextChar = c.getNextToken(true, false)
+				}
+			}
+			nextChar = c.getNextToken(false, false)
+			c.result += ")"
+			paramCount := len(params)
+			if paramCount > len(result.paramTypes) {
+				c.throwAtLine("Too many params")
+			}
+			for i, pt := range result.paramTypes {
+				if i < paramCount {
+					p := params[i]
+					if !pt.isCompatible(p) {
+						c.throwTypeError(pt, p)
+					}
+				} else {
+					// Check if undefined is allowed
+					if !pt.undefined {
+						c.throwAtLine("Missing params")
+					}
+				}
+			}
 
 			// Set result to function returnType
+			result = result.returnType
+			result.assignable = false
 
 		} else if (result.toft == "struct" || result.toft == "class") && (nextChar == "." || nextChar == "[") {
+			nextChar := c.getNextToken(false, true)
 			if nextChar == "[" {
 				c.throwAtLine("Dynamic properties are not allowed")
 			}
+			c.result += "."
 			propName := c.getNextToken(false, true)
 			if len(c.whitespace) > 0 {
 				c.throwAtLine("Unexpected whitespace")
 			}
+			c.result += propName
 			// check if struct
 			s, ok := c.getStruct(result.name)
 			if ok {
@@ -275,10 +312,8 @@ func (c *Compile) assignValue() *VarType {
 				if !ok {
 					c.throwAtLine("Undefined property: " + propName + " on struct: " + result.name)
 				}
-				result = c.assignValue()
-				if !prop.varType.isCompatible(result) {
-					c.throwTypeError(prop.varType, result)
-				}
+				result = prop.varType
+				result.assignable = true
 			} else {
 				// check if class
 				class, ok := c.getClass(result.name)
