@@ -10,9 +10,10 @@ type Var struct {
 }
 
 type Scope struct {
-	structs map[string]string
-	classes map[string]string
-	vars    map[string]Var
+	structs    map[string]string
+	classes    map[string]string
+	vars       map[string]Var
+	returnType *VarType
 }
 
 func (s *Scope) typeExists(name string) bool {
@@ -118,6 +119,51 @@ func (c *Compile) assignValue() *VarType {
 	} else if token == "new" {
 		// Classes
 		c.throwAtLine("Class values not supported yet")
+	} else if token == "function" {
+		// Functions
+		c.expectToken("(")
+		c.result += "function("
+
+		_type := VarType{
+			name:       "func",
+			paramTypes: []*VarType{},
+		}
+		result = &_type
+
+		createNewScope()
+		scope := getScope()
+
+		ntoken := c.getNextToken(true, false)
+		if ntoken == ")" {
+			ntoken = c.getNextToken(false, false)
+		}
+		for ntoken != ")" {
+			paramName := c.getNextToken(false, false)
+			c.result += paramName
+			ptype := c.getNextType()
+			result.paramTypes = append(result.paramTypes, ptype)
+			scope.vars[paramName] = Var{
+				_type: ptype,
+			}
+			ntoken = c.getNextTokenSameLine()
+			if ntoken != "," && ntoken != ")" {
+				c.throwAtLine("Unexpected token: " + ntoken)
+			}
+			c.result += ntoken
+		}
+		rtype := c.getNextType()
+		result.returnType = rtype
+
+		c.expectToken("{")
+		c.result += "{"
+		scopes[scopeIndex].returnType = result.returnType
+		c.compile()
+		if string(c.code[c.index-1]) != "}" {
+			c.throwAtLine("Expected: }")
+		}
+		c.result += "}"
+		popScope()
+
 	} else if isVarNameSyntax([]byte(token)) {
 		// Vars
 		_var, ok := c.getVar(token)
@@ -249,10 +295,10 @@ func (c *Compile) assignValue() *VarType {
 	}
 
 	// Handle trailing . [ or (
-	for result.toft == "struct" || result.toft == "class" || result.name == "func" || result.name == "array" {
+	for {
 		nextChar := c.readNextChar()
 		if (result.name == "array") && nextChar == "[" {
-
+			c.throwAtLine("Array accessors not ready yet")
 		} else if (result.name == "func") && nextChar == "(" {
 			// Function
 			nextChar := c.getNextToken(false, true)
@@ -294,7 +340,7 @@ func (c *Compile) assignValue() *VarType {
 			result = result.returnType
 			result.assignable = false
 
-		} else if (result.toft == "struct" || result.toft == "class") && (nextChar == "." || nextChar == "[") {
+		} else if nextChar == "." || nextChar == "[" {
 			nextChar := c.getNextToken(false, true)
 			if nextChar == "[" {
 				c.throwAtLine("Dynamic properties are not allowed")

@@ -24,6 +24,7 @@ type Compile struct {
 	col          int
 	lastTokenCol int
 	whitespace   string
+	exitScope    bool
 
 	code   []byte
 	result string
@@ -34,16 +35,17 @@ func compileCode(name string, code []byte) string {
 	c := Compile{
 		name: name,
 
-		index:    0,
-		maxIndex: len(code) - 1,
-		line:     1,
+		index:     0,
+		maxIndex:  len(code) - 1,
+		line:      1,
+		exitScope: false,
 
 		code:   code,
 		result: "",
 	}
 
 	if len(scopes) == 0 {
-		c.createNewScope()
+		createNewScope()
 	}
 
 	return c.compile()
@@ -53,12 +55,16 @@ func (c *Compile) compile() string {
 
 	for c.index <= c.maxIndex {
 		c.handleNextWord()
+		if c.exitScope {
+			c.exitScope = false
+			break
+		}
 	}
 
 	return c.result
 }
 
-func (c *Compile) createNewScope() {
+func createNewScope() {
 	s := Scope{
 		structs: map[string]string{},
 		classes: map[string]string{},
@@ -66,6 +72,13 @@ func (c *Compile) createNewScope() {
 	}
 	scopes = append(scopes, &s)
 	scopeIndex++
+}
+func getScope() *Scope {
+	return scopes[scopeIndex]
+}
+func popScope() {
+	scopes = scopes[:len(scopes)-1]
+	scopeIndex--
 }
 
 func (c *Compile) getNextToken(readOnly bool, sameLine bool) string {
@@ -476,6 +489,10 @@ func (c *Compile) handleNextWord() {
 		c.handleMacro(word)
 		return
 	}
+	if token == "}" && scopeIndex > 0 {
+		c.exitScope = true
+		return
+	}
 
 	isDefine := token == "define"
 	if isDefine {
@@ -491,6 +508,25 @@ func (c *Compile) handleNextWord() {
 			}
 		}
 		c.handleStruct(isLocal, isDefine)
+		return
+	}
+
+	if token == "return" {
+		c.result += "return "
+		rtype := c.assignValue()
+		c.result += ";"
+		scope := scopes[scopeIndex]
+		if scope.returnType == nil {
+			c.throwAtLine("Unexpected return statement")
+		}
+		if !scope.returnType.isCompatible(rtype) {
+			c.throwTypeError(scope.returnType, rtype)
+		}
+		return
+	}
+
+	if token == "class" {
+		c.handleClass(isDefine)
 		return
 	}
 
@@ -552,6 +588,7 @@ func (c *Compile) handleNextWord() {
 			nextChar = c.getNextToken(false, false)
 		}
 		c.result += ";"
+		// Todo: check for missing props if left is struct
 		return
 	}
 

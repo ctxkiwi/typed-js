@@ -5,6 +5,7 @@ define struct string, class String {
     length: number
     split: func(string) array<string>
     substr: func(number, number|null|undefined) string
+    toUpperCase: func() string
 }
 
 define struct number, class Number {
