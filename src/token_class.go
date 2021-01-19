@@ -89,7 +89,14 @@ func (c *Compile) handleClass(isDefine bool) {
 		c.addResult(") {\n")
 		if hasConstructor {
 			c.addResult("this.constructor = " + functionCode["constructor"] + ";\n")
-			c.addResult("this.constructor();\n")
+			c.addResult("this.constructor(")
+			for i, vtype := range constructorProp.varType.paramTypes {
+				if i > 0 {
+					c.addResult(", ")
+				}
+				c.addResult(vtype.paramName)
+			}
+			c.addResult(");\n")
 		}
 		c.addResult("};\n")
 

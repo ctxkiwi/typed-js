@@ -126,7 +126,8 @@ func (c *Compile) assignValue() *VarType {
 		}
 		c.addResult(className)
 		_type := VarType{
-			name: className,
+			name:    className,
+			isClass: true,
 		}
 		result = &_type
 		c.expectToken("(")
@@ -226,13 +227,13 @@ func (c *Compile) assignValue() *VarType {
 	} else if isVarNameSyntax([]byte(token)) {
 		// Vars
 		_var, ok := c.getVar(token)
-		if ok {
-			// Is variable name
-			c.addResult(token)
-			result = _var._type
-		} else {
+		if !ok {
 			c.throwAtLine("Undefined variable: " + token)
 		}
+		// Is variable name
+		c.addResult(token)
+		result = _var._type
+		result.assignable = true
 	} else if token == "\"" || token == "'" {
 		// String
 		c.addResult(token)
