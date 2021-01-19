@@ -17,6 +17,7 @@ type VarType struct {
 	paramTypes []*VarType
 	returnType *VarType
 	assignable bool
+	paramName  string
 	//
 	isStruct bool
 	isClass  bool

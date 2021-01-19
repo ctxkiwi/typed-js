@@ -8,7 +8,7 @@ var allClasses = map[string]Class{}
 var classCount = 0
 
 func createNewClass() (string, *Class) {
-	name := strconv.Itoa(classCount)
+	name := "class_" + strconv.Itoa(classCount)
 	s := Class{}
 	s.props = map[string]*Property{}
 	allClasses[name] = s

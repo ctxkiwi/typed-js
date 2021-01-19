@@ -5,10 +5,15 @@ struct Person {
 }
 
 class Helper {
+    constructor: function() void {
+        console.log("Create a new helper")
+    }
     up: function(str string) string {
         return str.toUpperCase()
     }
 }
+
+Helper helper = new Helper()
 
 Person x = {
     _fn: "Jojo"

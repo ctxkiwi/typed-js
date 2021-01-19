@@ -26,8 +26,25 @@ type Compile struct {
 	whitespace   string
 	exitScope    bool
 
-	code   []byte
-	result string
+	code         []byte
+	result       string
+	resultBlocks []string
+}
+
+func (c *Compile) recordResult() {
+	c.resultBlocks = append(c.resultBlocks, "")
+}
+func (c *Compile) getRecording() string {
+	result := c.resultBlocks[len(c.resultBlocks)-1]
+	c.resultBlocks = c.resultBlocks[:len(c.resultBlocks)-1]
+	return result
+}
+func (c *Compile) addResult(str string) {
+	if len(c.resultBlocks) > 0 {
+		c.resultBlocks[len(c.resultBlocks)-1] += str
+	} else {
+		c.result += str
+	}
 }
 
 func compileCode(name string, code []byte) string {
@@ -112,7 +129,7 @@ func (c *Compile) getNextToken(readOnly bool, sameLine bool) string {
 				if len(c.result) > 1 {
 					lastChars = c.result[len(c.result)-2:]
 					if lastChars != "\n\n" {
-						c.result += "\n"
+						c.addResult("\n")
 					}
 				}
 			}
@@ -434,7 +451,7 @@ func (c *Compile) getNextType() *VarType {
 		}
 	} else {
 		_, foundStruct := c.getStruct(token)
-		_, foundClass := c.getStruct(token) // todo: fix
+		_, foundClass := c.getClass(token)
 		if foundStruct {
 			result.toft = "struct"
 		} else if foundClass {
@@ -512,9 +529,9 @@ func (c *Compile) handleNextWord() {
 	}
 
 	if token == "return" {
-		c.result += "return "
+		c.addResult("return ")
 		rtype := c.assignValue()
-		c.result += ";"
+		c.addResult(";\n")
 		scope := scopes[scopeIndex]
 		if scope.returnType == nil {
 			c.throwAtLine("Unexpected return statement")
@@ -571,7 +588,7 @@ func (c *Compile) handleNextWord() {
 			nextToken := c.getNextToken(true, false)
 			if nextToken == "=" {
 				nextToken = c.getNextToken(false, false)
-				c.result += "="
+				c.addResult("=")
 				assignType := c.assignValue()
 				if !vt.isCompatible(assignType) {
 					c.throwTypeError(vt, assignType)
@@ -587,7 +604,7 @@ func (c *Compile) handleNextWord() {
 		if nextChar == ";" {
 			nextChar = c.getNextToken(false, false)
 		}
-		c.result += ";"
+		c.addResult(";\n")
 		// Todo: check for missing props if left is struct
 		return
 	}
