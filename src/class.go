@@ -10,6 +10,7 @@ var classCount = 0
 func createNewClass() (string, *Class) {
 	name := "class_" + strconv.Itoa(classCount)
 	s := Class{}
+	s.name = name
 	s.props = map[string]*Property{}
 	allClasses[name] = s
 	return name, &s
@@ -17,6 +18,7 @@ func createNewClass() (string, *Class) {
 
 type Class struct {
 	isLocal bool
+	name    string
 	props   map[string]*Property
 }
 

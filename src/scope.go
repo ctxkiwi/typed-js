@@ -62,7 +62,8 @@ func (c *Compile) declareVariable(_type *VarType, isDefine bool) {
 		c.throwAtLine("Name already used as a class/struct: " + varName)
 	}
 	if !isDefine {
-		c.addResult(c.whitespace + "var " + varName)
+		c.addSpace()
+		c.addResult("var " + varName)
 		c.expectToken("=")
 		c.addResult(" = ")
 		rightType := c.assignValue()
@@ -124,7 +125,7 @@ func (c *Compile) assignValue() *VarType {
 		if !classExists {
 			c.throwAtLine("Unknown class: " + className)
 		}
-		c.addResult(className)
+		c.addResult(class.name)
 		_type := VarType{
 			name:    className,
 			isClass: true,
@@ -270,7 +271,7 @@ func (c *Compile) assignValue() *VarType {
 
 	} else if token == "[" {
 		// Array
-		c.addResult(c.whitespace + "[")
+		c.addResult("[")
 
 		returnType := VarType{
 			name:       "array",
@@ -307,7 +308,7 @@ func (c *Compile) assignValue() *VarType {
 				}
 			}
 		}
-		c.addResult(c.whitespace + "]")
+		c.addResult("]")
 
 		result = &returnType
 
@@ -328,7 +329,7 @@ func (c *Compile) assignValue() *VarType {
 			}
 			c.checkVarNameSyntax([]byte(token))
 			varName := token
-			c.addResult(c.whitespace + varName)
+			c.addResult(varName)
 			c.expectToken(":")
 			c.addResult(":")
 			// Read value
@@ -348,7 +349,7 @@ func (c *Compile) assignValue() *VarType {
 		// todo: Autofill missing fields
 
 		//
-		c.addResult(c.whitespace + "}")
+		c.addResult("}")
 		result = &returnType
 	} else {
 		c.throwAtLine("Setting value type '" + token + "' is not supported yet")
@@ -413,10 +414,18 @@ func (c *Compile) assignValue() *VarType {
 			c.addResult(propName)
 			// check if struct
 			s, ok := c.getStruct(result.name)
+			class, foundClass := c.getClass(result.name)
 			if ok {
 				prop, ok := s.props[propName]
 				if !ok {
 					c.throwAtLine("Undefined property: " + propName + " on struct: " + result.name)
+				}
+				result = prop.varType
+				result.assignable = true
+			} else if foundClass {
+				prop, ok := class.props[propName]
+				if !ok {
+					c.throwAtLine("Undefined property: " + propName + " on class: " + result.name)
 				}
 				result = prop.varType
 				result.assignable = true

@@ -47,6 +47,16 @@ func (c *Compile) addResult(str string) {
 	}
 }
 
+func (c *Compile) addSpace() {
+	i := 0
+	result := ""
+	for i < scopeIndex {
+		result += "    "
+		i++
+	}
+	c.addResult(result)
+}
+
 func compileCode(name string, code []byte) string {
 
 	c := Compile{
@@ -129,7 +139,7 @@ func (c *Compile) getNextToken(readOnly bool, sameLine bool) string {
 				if len(c.result) > 1 {
 					lastChars = c.result[len(c.result)-2:]
 					if lastChars != "\n\n" {
-						c.addResult("\n")
+						// c.addResult("\n")
 					}
 				}
 			}
@@ -529,6 +539,7 @@ func (c *Compile) handleNextWord() {
 	}
 
 	if token == "return" {
+		c.addSpace()
 		c.addResult("return ")
 		rtype := c.assignValue()
 		c.addResult(";\n")
@@ -582,13 +593,14 @@ func (c *Compile) handleNextWord() {
 	if isVar || token == "(" || token == "[" {
 		c.index -= len(token)
 		c.col -= len(token)
+		c.addSpace()
 		vt := c.assignValue()
 		if vt.assignable {
 			// Check for = sign
 			nextToken := c.getNextToken(true, false)
 			if nextToken == "=" {
 				nextToken = c.getNextToken(false, false)
-				c.addResult("=")
+				c.addResult(" = ")
 				assignType := c.assignValue()
 				if !vt.isCompatible(assignType) {
 					c.throwTypeError(vt, assignType)

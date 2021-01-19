@@ -29,4 +29,6 @@ console.log("test");
 
 Helper helper = new Helper("c1")
 helper = new Helper("c2")
-helper.up = "string";
+helper.up = function(msg string) string {
+    console.log("test")
+};

@@ -76,7 +76,7 @@ func (c *Compile) handleClass(isDefine bool) {
 
 	// Write result code
 	if !isDefine {
-		c.addResult("var " + name + " = function(")
+		c.addResult("var " + globalName + " = function(")
 		constructorProp, hasConstructor := class.props["constructor"]
 		if hasConstructor {
 			for i, vtype := range constructorProp.varType.paramTypes {
@@ -104,7 +104,7 @@ func (c *Compile) handleClass(isDefine bool) {
 			if funcName == "constructor" {
 				continue
 			}
-			c.addResult(name + ".prototype." + funcName + " = " + fcode + "\n")
+			c.addResult(globalName + ".prototype." + funcName + " = " + fcode + "\n")
 		}
 		c.addResult("\n")
 	}
