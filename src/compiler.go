@@ -47,8 +47,10 @@ func (c *Compile) addResult(str string) {
 	}
 }
 
+var extraSpace = 0
+
 func (c *Compile) addSpace() {
-	i := 0
+	i := -1 - extraSpace
 	result := ""
 	for i < scopeIndex {
 		result += "    "
@@ -139,7 +141,8 @@ func (c *Compile) getNextToken(readOnly bool, sameLine bool) string {
 				if len(c.result) > 1 {
 					lastChars = c.result[len(c.result)-2:]
 					if lastChars != "\n\n" {
-						// c.addResult("\n")
+						c.addResult("\n")
+						c.addSpace()
 					}
 				}
 			}
@@ -539,10 +542,9 @@ func (c *Compile) handleNextWord() {
 	}
 
 	if token == "return" {
-		c.addSpace()
 		c.addResult("return ")
 		rtype := c.assignValue()
-		c.addResult(";\n")
+		c.addResult(";")
 		scope := scopes[scopeIndex]
 		if scope.returnType == nil {
 			c.throwAtLine("Unexpected return statement")
@@ -593,7 +595,6 @@ func (c *Compile) handleNextWord() {
 	if isVar || token == "(" || token == "[" {
 		c.index -= len(token)
 		c.col -= len(token)
-		c.addSpace()
 		vt := c.assignValue()
 		if vt.assignable {
 			// Check for = sign
@@ -616,7 +617,7 @@ func (c *Compile) handleNextWord() {
 		if nextChar == ";" {
 			nextChar = c.getNextToken(false, false)
 		}
-		c.addResult(";\n")
+		c.addResult(";")
 		// Todo: check for missing props if left is struct
 		return
 	}

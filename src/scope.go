@@ -62,7 +62,6 @@ func (c *Compile) declareVariable(_type *VarType, isDefine bool) {
 		c.throwAtLine("Name already used as a class/struct: " + varName)
 	}
 	if !isDefine {
-		c.addSpace()
 		c.addResult("var " + varName)
 		c.expectToken("=")
 		c.addResult(" = ")
@@ -70,7 +69,7 @@ func (c *Compile) declareVariable(_type *VarType, isDefine bool) {
 		if !_type.isCompatible(rightType) {
 			c.throwTypeError(_type, rightType)
 		}
-		c.addResult(";\n")
+		c.addResult(";")
 	}
 	scope := scopes[scopeIndex]
 	scope.vars[varName] = Var{
@@ -216,7 +215,7 @@ func (c *Compile) assignValue() *VarType {
 		result.returnType = rtype
 
 		c.expectToken("{")
-		c.addResult("{\n")
+		c.addResult("{")
 		scopes[scopeIndex].returnType = result.returnType
 		c.compile()
 		if string(c.code[c.index-1]) != "}" {
@@ -322,6 +321,7 @@ func (c *Compile) assignValue() *VarType {
 		}
 
 		// s, _ := c.getStruct(leftType.name)
+		extraSpace++
 		token := c.getNextToken(false, false)
 		for token != "}" {
 			if token == "" {
@@ -339,6 +339,10 @@ func (c *Compile) assignValue() *VarType {
 			}
 			returnType.props[varName] = &newProp
 
+			token = c.getNextToken(true, false)
+			if token == "}" {
+				extraSpace--
+			}
 			token = c.getNextToken(false, false)
 			if token == "," {
 				c.addResult(",")
