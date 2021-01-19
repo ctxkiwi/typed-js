@@ -67,8 +67,9 @@ func main() {
 	data, _ = Asset("src/core/globals.tjs")
 	jscode += compileCode("src/core/globals.tjs", []byte(data))
 
-	jscode += "\n"
+	jscode += "\nfunction(){"
 	jscode += compileCode(inputFilepath, code)
+	jscode += "\n}();\n"
 	elapsed := time.Since(start)
 
 	// Result
