@@ -24,16 +24,16 @@ type VarType struct {
 	isLocal  bool
 }
 
-func (c *Compile) getTypeOfType(_type string) (string, bool) {
+func (fc *FileCompiler) getTypeOfType(_type string) (string, bool) {
 	i := sort.SearchStrings(basicTypes, _type)
 	if i < len(basicTypes) && basicTypes[i] == _type {
 		return "basic", true
 	}
-	_, ok := c.getStruct(_type)
+	_, ok := fc.getStruct(_type)
 	if ok {
 		return "struct", true
 	}
-	_, ok = c.getClass(_type)
+	_, ok = fc.getClass(_type)
 	if ok {
 		return "class", true
 	}
@@ -110,8 +110,8 @@ func (t *VarType) displayName() string {
 	return result
 }
 
-func (c *Compile) throwTypeError(t *VarType, at *VarType) {
-	c.throwAtLine("Types not compatible: " + t.displayName() + " <-> " + at.displayName() + "")
+func (fc *FileCompiler) throwTypeError(t *VarType, at *VarType) {
+fc.throwAtLine("Types not compatible: " + t.displayName() + " <-> " + at.displayName() + "")
 }
 
 func createType(name string) *VarType {

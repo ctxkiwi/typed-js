@@ -12,11 +12,16 @@ var basicValues = []string{"true", "false", "undefined", "null", "[]", "{}"}
 var operators = []string{"+", "-", "*", "/", "==", "===", "<", ">", "<=", ">=", "&&", "||", "++", "--"}
 var operatorChars = []string{"+", "-", "*", "/", "=", "<", ">", "&", "|"}
 
-var scopes []*Scope
-var scopeIndex = -1
+type Compiler struct {
+	scopes     []*Scope
+	scopeIndex int
+	readTypes  bool
+}
 
-type Compile struct {
+type FileCompiler struct {
 	name string
+
+	compiler *Compiler
 
 	index        int
 	maxIndex     int
@@ -31,38 +36,40 @@ type Compile struct {
 	resultBlocks []string
 }
 
-func (c *Compile) recordResult() {
-	c.resultBlocks = append(c.resultBlocks, "")
+func (fc *FileCompiler) recordResult() {
+	fc.resultBlocks = append(fc.resultBlocks, "")
 }
-func (c *Compile) getRecording() string {
-	result := c.resultBlocks[len(c.resultBlocks)-1]
-	c.resultBlocks = c.resultBlocks[:len(c.resultBlocks)-1]
+func (fc *FileCompiler) getRecording() string {
+	result := fc.resultBlocks[len(fc.resultBlocks)-1]
+	fc.resultBlocks = fc.resultBlocks[:len(fc.resultBlocks)-1]
 	return result
 }
-func (c *Compile) addResult(str string) {
-	if len(c.resultBlocks) > 0 {
-		c.resultBlocks[len(c.resultBlocks)-1] += str
+func (fc *FileCompiler) addResult(str string) {
+	if len(fc.resultBlocks) > 0 {
+		fc.resultBlocks[len(fc.resultBlocks)-1] += str
 	} else {
-		c.result += str
+		fc.result += str
 	}
 }
 
 var extraSpace = 0
 
-func (c *Compile) addSpace() {
+func (fc *FileCompiler) addSpace() {
 	i := -1 - extraSpace
 	result := ""
-	for i < scopeIndex {
+	for i < fc.compiler.scopeIndex {
 		result += "    "
 		i++
 	}
-	c.addResult(result)
+	fc.addResult(result)
 }
 
-func compileCode(name string, code []byte) string {
+func (c *Compiler) compileCode(name string, code []byte) string {
 
-	c := Compile{
+	fc := FileCompiler{
 		name: name,
+
+		compiler: c,
 
 		index:     0,
 		maxIndex:  len(code) - 1,
@@ -73,76 +80,81 @@ func compileCode(name string, code []byte) string {
 		result: "",
 	}
 
-	if len(scopes) == 0 {
-		createNewScope()
+	if len(c.scopes) == 0 {
+		c.createNewScope()
 	}
 
-	return c.compile()
+	return fc.compile()
 }
 
-func (c *Compile) compile() string {
+func (fc *FileCompiler) compile() string {
 
-	for c.index <= c.maxIndex {
-		c.handleNextWord()
-		if c.exitScope {
-			c.exitScope = false
+	for fc.index <= fc.maxIndex {
+		fc.handleNextWord()
+		if fc.exitScope {
+			fc.exitScope = false
 			break
 		}
 	}
 
-	return c.result
+	if fc.exitScope {
+		fc.throwAtLine("You forgot to close a certain scope, expected: \"}\"")
+	}
+
+	return fc.result
 }
 
-func createNewScope() {
+func (c *Compiler) createNewScope() {
 	s := Scope{
 		structs: map[string]string{},
 		classes: map[string]string{},
 		vars:    map[string]Var{},
 	}
-	scopes = append(scopes, &s)
-	scopeIndex++
-}
-func getScope() *Scope {
-	return scopes[scopeIndex]
-}
-func popScope() {
-	scopes = scopes[:len(scopes)-1]
-	scopeIndex--
+	c.scopes = append(c.scopes, &s)
+	c.scopeIndex++
 }
 
-func (c *Compile) getNextToken(readOnly bool, sameLine bool) string {
+func (c *Compiler) getScope() *Scope {
+	return c.scopes[c.scopeIndex]
+}
+func (c *Compiler) popScope() {
+	c.scopes = c.scopes[:len(c.scopes)-1]
+	c.scopeIndex--
+}
 
-	indexAtStart := c.index
+func (fc *FileCompiler) getNextToken(readOnly bool, sameLine bool) string {
+
+	indexAtStart := fc.index
 	if !readOnly {
-		c.lastTokenCol = c.col
-		c.whitespace = ""
+		fc.lastTokenCol = fc.col
+		fc.whitespace = ""
 	}
 
 	word := ""
-	for c.index <= c.maxIndex {
+	for fc.index <= fc.maxIndex {
 
-		charInt := c.code[c.index]
+		charInt := fc.code[fc.index]
 		char := string(charInt)
 
 		if isNewLine(charInt) {
 			if sameLine {
 				if len(word) == 0 && !readOnly {
-					c.throwAtLine("Unexpected new line")
+					fc.throwAtLine("Unexpected new line")
 				}
 				break
 			}
-			c.index++
+			fc.index++
 			if !readOnly {
-				c.line++
-				c.col = 0
-				c.lastTokenCol = 0
-				c.whitespace = ""
+				fc.line++
+				fc.col = 0
+				fc.lastTokenCol = 0
+				fc.whitespace = ""
 				lastChars := ""
-				if len(c.result) > 1 {
-					lastChars = c.result[len(c.result)-2:]
+				if len(fc.result) > 1 {
+					lastChars = fc.result[len(fc.result)-2:]
 					if lastChars != "\n\n" {
-						c.addResult("\n")
-						c.addSpace()
+						fc.addResult("\n")
+						fc.addSpace()
 					}
 				}
 			}
@@ -153,38 +165,38 @@ func (c *Compile) getNextToken(readOnly bool, sameLine bool) string {
 		}
 
 		if isWhiteSpace(charInt) && len(word) == 0 {
-			c.index++
+			fc.index++
 			if !readOnly {
-				c.col++
-				c.lastTokenCol++
-				c.whitespace += char
+				fc.col++
+				fc.lastTokenCol++
+				fc.whitespace += char
 			}
 			continue
 		}
 
 		if isVarNameChar(charInt) || (len(word) > 0 && isNumberChar(charInt)) || (len(word) == 0 && char == "#") {
 			word += char
-			c.index++
+			fc.index++
 			if !readOnly {
-				c.col++
+				fc.col++
 			}
 			continue
 		}
 
 		if len(word) == 0 {
-			c.index++
+			fc.index++
 			if !readOnly {
-				c.col++
+				fc.col++
 			}
 			word = char
 			// Comments
 			if char == "/" {
-				nextChar := c.readNextChar()
+				nextChar := fc.readNextChar()
 				if nextChar == "/" || nextChar == "*" {
 					word += nextChar
-					c.index++
+					fc.index++
 					if !readOnly {
-						c.col++
+						fc.col++
 					}
 					break
 				}
@@ -193,21 +205,21 @@ func (c *Compile) getNextToken(readOnly bool, sameLine bool) string {
 			i := sort.SearchStrings(operatorChars, char)
 			if i < len(operatorChars) && operatorChars[i] == char {
 				// If operator char
-				nextChar := c.readNextChar()
+				nextChar := fc.readNextChar()
 				i = sort.SearchStrings(operatorChars, nextChar)
 				if i < len(operatorChars) && operatorChars[i] == nextChar {
 					word += nextChar
-					c.index++
+					fc.index++
 					if !readOnly {
-						c.col++
+						fc.col++
 					}
 				}
-				nextChar = c.readNextChar()
+				nextChar = fc.readNextChar()
 				if nextChar == "=" {
 					word += nextChar
-					c.index++
+					fc.index++
 					if !readOnly {
-						c.col++
+						fc.col++
 					}
 				}
 			}
@@ -218,47 +230,47 @@ func (c *Compile) getNextToken(readOnly bool, sameLine bool) string {
 	}
 
 	if readOnly {
-		c.index = indexAtStart
+		fc.index = indexAtStart
 	}
 
 	return word
 }
 
-func (c *Compile) getNextTokenSameLine() string {
+func (fc *FileCompiler) getNextTokenSameLine() string {
 
-	c.lastTokenCol = c.col
+	fc.lastTokenCol = fc.col
 
 	word := ""
-	for c.index <= c.maxIndex {
+	for fc.index <= fc.maxIndex {
 
-		charInt := c.code[c.index]
+		charInt := fc.code[fc.index]
 		char := string(charInt)
 
 		if isNewLine(charInt) {
 			if len(word) == 0 {
-				c.throwAtLine("Unexpected new line")
+				fc.throwAtLine("Unexpected new line")
 			}
 			break
 		}
 
 		if isWhiteSpace(charInt) && len(word) == 0 {
-			c.index++
-			c.col++
-			c.lastTokenCol++
+			fc.index++
+			fc.col++
+			fc.lastTokenCol++
 			continue
 		}
 
 		if isVarNameChar(charInt) || (len(word) == 0 && char == "#") {
 			word += char
-			c.index++
-			c.col++
+			fc.index++
+			fc.col++
 			continue
 		}
 
 		// If any special character
 		if len(word) == 0 {
-			c.index++
-			c.col++
+			fc.index++
+			fc.col++
 			return char
 		}
 
@@ -268,41 +280,41 @@ func (c *Compile) getNextTokenSameLine() string {
 	return word
 }
 
-func (c *Compile) getNextCharacterOnLine() string {
+func (fc *FileCompiler) getNextCharacterOnLine() string {
 
-	c.lastTokenCol = c.col
+	fc.lastTokenCol = fc.col
 
-	for c.index <= c.maxIndex {
+	for fc.index <= fc.maxIndex {
 
-		charInt := c.code[c.index]
+		charInt := fc.code[fc.index]
 		char := string(charInt)
 
 		if isNewLine(charInt) {
-			c.index++
-			c.col = 0
-			c.lastTokenCol = 0
-			c.line++
+			fc.index++
+			fc.col = 0
+			fc.lastTokenCol = 0
+			fc.line++
 			return char
 		}
 
-		c.index++
-		c.col++
+		fc.index++
+		fc.col++
 
 		if isWhiteSpace(charInt) {
-			c.lastTokenCol++
+			fc.lastTokenCol++
 			continue
 		}
 
 		return char
 	}
 
-	c.throwAtLine("Unexpected end of file")
+	fc.throwAtLine("Unexpected end of file")
 	return ""
 }
 
-func (c *Compile) getNextValueToken() (string, string) {
+func (fc *FileCompiler) getNextValueToken() (string, string) {
 
-	c.lastTokenCol = c.col
+	fc.lastTokenCol = fc.col
 
 	vtype := ""
 	word := ""
@@ -312,43 +324,43 @@ func (c *Compile) getNextValueToken() (string, string) {
 	hasDot := false
 	endStrChar := ""
 
-	for c.index <= c.maxIndex {
+	for fc.index <= fc.maxIndex {
 
 		prevChar = char
-		charInt := c.code[c.index]
+		charInt := fc.code[fc.index]
 		char = string(charInt)
 
 		if inStr {
 			word += char
-			c.index++
-			c.col++
-			c.lastTokenCol++
+			fc.index++
+			fc.col++
+			fc.lastTokenCol++
 			if char == endStrChar {
 				break
 			}
 			if isNewLine(charInt) {
 				if prevChar != "\\" {
 					// prevent new line
-					c.throwAtLine("Unexpected new line")
+					fc.throwAtLine("Unexpected new line")
 				}
-				c.line++
-				c.col = 0
-				c.lastTokenCol = 0
+				fc.line++
+				fc.col = 0
+				fc.lastTokenCol = 0
 			}
 			continue
 		}
 
 		if isNewLine(charInt) {
 			if len(word) == 0 {
-				c.throwAtLine("Unexpected new line")
+				fc.throwAtLine("Unexpected new line")
 			}
 			break
 		}
 
 		if isWhiteSpace(charInt) && len(word) == 0 {
-			c.index++
-			c.col++
-			c.lastTokenCol++
+			fc.index++
+			fc.col++
+			fc.lastTokenCol++
 			continue
 		}
 
@@ -356,8 +368,8 @@ func (c *Compile) getNextValueToken() (string, string) {
 		if len(word) == 0 && (char == "\"" || char == "'") {
 			word += char
 			endStrChar = char
-			c.index++
-			c.col++
+			fc.index++
+			fc.col++
 			vtype = "str"
 			inStr = true
 			continue
@@ -365,11 +377,11 @@ func (c *Compile) getNextValueToken() (string, string) {
 
 		if isVarNameChar(charInt) {
 			if vtype != "" && vtype != "word" {
-				c.throwAtLine("Unexpected char: " + char)
+				fc.throwAtLine("Unexpected char: " + char)
 			}
 			word += char
-			c.index++
-			c.col++
+			fc.index++
+			fc.col++
 			vtype = "word"
 			continue
 		}
@@ -377,17 +389,17 @@ func (c *Compile) getNextValueToken() (string, string) {
 		isDot := char == "."
 		if isNumberChar(charInt) || isDot {
 			if vtype != "" && vtype != "num" {
-				c.throwAtLine("Unexpected char: " + char)
+				fc.throwAtLine("Unexpected char: " + char)
 			}
 			if isDot {
 				if hasDot || len(word) == 0 {
-					c.throwAtLine("Unexpected char: " + char)
+					fc.throwAtLine("Unexpected char: " + char)
 				}
 				hasDot = true
 			}
 			word += char
-			c.index++
-			c.col++
+			fc.index++
+			fc.col++
 			vtype = "num"
 			continue
 		}
@@ -396,12 +408,12 @@ func (c *Compile) getNextValueToken() (string, string) {
 	}
 
 	if len(word) == 0 {
-		c.throwAtLine("Missing value")
+		fc.throwAtLine("Missing value")
 	}
 
 	// if ends with a dot
 	if string(word[len(word)-1]) == "." {
-		c.throwAtLine("Unexpected dot")
+		fc.throwAtLine("Unexpected dot")
 	}
 
 	if word == "true" || word == "false" {
@@ -426,142 +438,149 @@ func (c *Compile) getNextValueToken() (string, string) {
 		return word, "int"
 	}
 
-	c.throwAtLine("Unknown value: " + word)
+	fc.throwAtLine("Unknown value: " + word)
 	return "", ""
 }
 
-func (c *Compile) getNextType() *VarType {
-	token := c.getNextToken(false, true)
+func (fc *FileCompiler) getNextType() *VarType {
+	token := fc.getNextToken(false, true)
 	result := VarType{
 		name: token,
 	}
 	i := sort.SearchStrings(basicTypes, token)
 	if i < len(basicTypes) && basicTypes[i] == token {
 		if token == "array" || token == "object" {
-			c.expectToken("<")
-			result.subtype = c.getNextType()
-			c.expectToken(">")
+			fc.expectToken("<")
+			result.subtype = fc.getNextType()
+			fc.expectToken(">")
 		}
 		if token == "func" {
-			c.expectToken("(")
-			currentIndex := c.index
-			currentCol := c.col
-			ntoken := c.getNextTokenSameLine()
+			fc.expectToken("(")
+			currentIndex := fc.index
+			currentCol := fc.col
+			ntoken := fc.getNextTokenSameLine()
 			if ntoken != ")" {
-				c.col = currentCol
-				c.index = currentIndex
+				fc.col = currentCol
+				fc.index = currentIndex
 			}
 			for ntoken != ")" {
-				ptype := c.getNextType()
+				ptype := fc.getNextType()
 				result.paramTypes = append(result.paramTypes, ptype)
-				ntoken = c.getNextTokenSameLine()
+				ntoken = fc.getNextTokenSameLine()
 				if ntoken != "," && ntoken != ")" {
-					c.throwAtLine("Unexpected token: " + ntoken)
+					fc.throwAtLine("Unexpected token: " + ntoken)
 				}
 			}
-			rtype := c.getNextType()
+			rtype := fc.getNextType()
 			result.returnType = rtype
 		}
 	} else {
-		_, foundStruct := c.getStruct(token)
-		_, foundClass := c.getClass(token)
+		_, foundStruct := fc.getStruct(token)
+		_, foundClass := fc.getClass(token)
 		if foundStruct {
 			result.toft = "struct"
 		} else if foundClass {
 			result.toft = "class"
 		} else {
-			c.throwAtLine("Unknown type: " + token)
+			fc.throwAtLine("Unknown type: " + token)
 		}
-		nchar := c.readNextChar()
+		nchar := fc.readNextChar()
 		if nchar == "<" {
-			c.expectToken("<")
-			result.subtype = c.getNextType()
-			c.expectToken(">")
+			fc.expectToken("<")
+			result.subtype = fc.getNextType()
+			fc.expectToken(">")
 		}
 	}
-	nchar := c.readNextChar()
+	nchar := fc.readNextChar()
 	for nchar == "|" {
-		c.expectToken("|")
-		ptype := c.getNextTokenSameLine()
+		fc.expectToken("|")
+		ptype := fc.getNextTokenSameLine()
 		if ptype == "null" {
 			result.nullable = true
 		} else if ptype == "undefined" {
 			result.undefined = true
 		} else {
-			c.throwAtLine("Expected null or undefined")
+			fc.throwAtLine("Expected null or undefined")
 		}
-		nchar = c.readNextChar()
+		nchar = fc.readNextChar()
 	}
 
 	return &result
 }
 
-func (c *Compile) readNextChar() string {
-	if c.index == c.maxIndex {
+func (fc *FileCompiler) readNextChar() string {
+	if fc.index == fc.maxIndex {
 		return ""
 	}
-	return string(c.code[c.index])
+	return string(fc.code[fc.index])
 }
 
-func (c *Compile) expectToken(token string) {
-	ntoken := c.getNextTokenSameLine()
+func (fc *FileCompiler) expectToken(token string) {
+	ntoken := fc.getNextTokenSameLine()
 	if ntoken != token {
-		c.throwAtLine("Expected: " + token)
+		fc.throwAtLine("Expected: " + token)
 	}
 }
 
-func (c *Compile) handleNextWord() {
+func (fc *FileCompiler) handleNextWord() {
 
-	token := c.getNextToken(false, false)
+	token := fc.getNextToken(false, false)
 
 	if token == "#" {
-		word := c.getNextToken(false, false)
-		c.handleMacro(word)
+		word := fc.getNextToken(false, false)
+		fc.handleMacro(word)
 		return
 	}
-	if token == "}" && scopeIndex > 0 {
-		c.exitScope = true
+	if token == "}" && fc.compiler.scopeIndex > 0 {
+		fc.exitScope = true
 		return
 	}
 
 	isDefine := token == "define"
 	if isDefine {
-		token = c.getNextTokenSameLine()
+		token = fc.getNextTokenSameLine()
+	}
+
+	if token == "return" {
+		fc.addResult("return ")
+		scope := fc.compiler.getScope()
+		if scope.returnType == nil {
+			fc.throwAtLine("Unexpected return statement")
+		}
+		if scope.returnType.name == "void" {
+			return
+		}
+		rtype := fc.assignValue()
+		fc.addResult(";")
+		if !scope.returnType.isCompatible(rtype) {
+			fc.throwTypeError(scope.returnType, rtype)
+		}
+		return
 	}
 
 	if token == "struct" || token == "local" {
 		isLocal := token == "local"
 		if isLocal {
-			token = c.getNextTokenSameLine()
+			token = fc.getNextTokenSameLine()
 			if token != "struct" {
-				c.throwAtLine("Unexpected token: " + token)
+				fc.throwAtLine("Unexpected token: " + token)
 			}
 		}
-		c.handleStruct(isLocal, isDefine)
-		return
-	}
-
-	if token == "return" {
-		c.addResult("return ")
-		rtype := c.assignValue()
-		c.addResult(";")
-		scope := scopes[scopeIndex]
-		if scope.returnType == nil {
-			c.throwAtLine("Unexpected return statement")
-		}
-		if !scope.returnType.isCompatible(rtype) {
-			c.throwTypeError(scope.returnType, rtype)
+		if fc.compiler.readTypes {
+			fc.handleTypeSkip(isLocal, isDefine, true, false)
+		} else {
+			fc.handleType(isLocal, isDefine, true, false)
 		}
 		return
 	}
 
 	if token == "class" {
-		c.handleClass(isDefine)
+		fc.handleType(false, isDefine, false, true)
 		return
 	}
 
 	if token == "include" {
-		c.handleInclude()
+		fc.handleInclude()
 		return
 	}
 
@@ -570,70 +589,70 @@ func (c *Compile) handleNextWord() {
 	}
 
 	if token == "import" {
-		c.handleImport()
+		fc.handleImport()
 		return
 	}
 
 	if token == "//" || token == "/*" {
-		c.handleComment()
+		fc.handleComment()
 		return
 	}
 
 	// Check if type/struct/class
-	if c.isValidType(token) {
-		c.index -= len(token)
-		c.col -= len(token)
-		if c.col < 0 {
-			c.col = 0
+	if fc.isValidType(token) {
+		fc.index -= len(token)
+		fc.col -= len(token)
+		if fc.col < 0 {
+			fc.col = 0
 		}
-		_type := c.getNextType()
-		c.declareVariable(_type, isDefine)
+		_type := fc.getNextType()
+		fc.declareVariable(_type, isDefine)
 		return
 	}
 
-	_, isVar := c.getVar(token)
+	_, isVar := fc.getVar(token)
 	if isVar || token == "(" || token == "[" {
-		c.index -= len(token)
-		c.col -= len(token)
-		vt := c.assignValue()
+		fc.index -= len(token)
+		fc.col -= len(token)
+		vt := fc.assignValue()
 		if vt.assignable {
 			// Check for = sign
-			nextToken := c.getNextToken(true, false)
+			nextToken := fc.getNextToken(true, false)
 			if nextToken == "=" {
-				nextToken = c.getNextToken(false, false)
-				c.addResult(" = ")
-				assignType := c.assignValue()
+				nextToken = fc.getNextToken(false, false)
+				fc.addResult(" = ")
+				assignType := fc.assignValue()
 				if !vt.isCompatible(assignType) {
-					c.throwTypeError(vt, assignType)
+					fc.throwTypeError(vt, assignType)
 				}
 			}
 		} else {
-			nextToken := c.getNextToken(true, false)
+			nextToken := fc.getNextToken(true, false)
 			if nextToken == "=" {
-				c.throwAtLine("Cannot assign a value to this")
+				fc.throwAtLine("Cannot assign a value to this")
 			}
 		}
-		nextChar := c.getNextToken(true, false)
+		nextChar := fc.getNextToken(true, false)
 		if nextChar == ";" {
-			nextChar = c.getNextToken(false, false)
+			nextChar = fc.getNextToken(false, false)
 		}
-		c.addResult(";")
+		fc.addResult(";")
 		// Todo: check for missing props if left is struct
 		return
 	}
 
 	// Unknown
 	if isVarNameSyntax([]byte(token)) {
-		c.throwAtLine("Unknown variable: " + token)
+		fc.throwAtLine("Unknown variable: " + token)
 	}
 
-	c.throwAtLine("Unexpected token: " + token)
+	fc.throwAtLine("Unexpected token: " + token)
 }
 
-func (c *Compile) getStruct(name string) (*VarType, bool) {
-	var sci = scopeIndex
+func (fc *FileCompiler) getStruct(name string) (*VarType, bool) {
+	var sci = fc.compiler.scopeIndex
 	for sci >= 0 {
-		scope := scopes[sci]
+		scope := fc.compiler.scopes[sci]
 		realName, ok := scope.structs[name]
 		if ok {
 			result, ok := allStructs[realName]
@@ -644,24 +663,24 @@ func (c *Compile) getStruct(name string) (*VarType, bool) {
 	return nil, false
 }
 
-func (c *Compile) getClass(name string) (*Class, bool) {
-	var sci = scopeIndex
+func (fc *FileCompiler) getClass(name string) (*VarType, bool) {
+	var sci = fc.compiler.scopeIndex
 	for sci >= 0 {
-		scope := scopes[sci]
+		scope := fc.compiler.scopes[sci]
 		realName, ok := scope.classes[name]
 		if ok {
 			result, ok := allClasses[realName]
-			return &result, ok
+			return result, ok
 		}
 		sci--
 	}
 	return nil, false
 }
 
-func (c *Compile) getVar(name string) (*Var, bool) {
-	var sci = scopeIndex
+func (fc *FileCompiler) getVar(name string) (*Var, bool) {
+	var sci = fc.compiler.scopeIndex
 	for sci >= 0 {
-		scope := scopes[sci]
+		scope := fc.compiler.scopes[sci]
 		result, ok := scope.vars[name]
 		if ok {
 			return &result, ok
@@ -671,10 +690,10 @@ func (c *Compile) getVar(name string) (*Var, bool) {
 	return nil, false
 }
 
-func (c *Compile) typeExists(name string) bool {
-	var sci = scopeIndex
+func (fc *FileCompiler) typeExists(name string) bool {
+	var sci = fc.compiler.scopeIndex
 	for sci >= 0 {
-		scope := scopes[sci]
+		scope := fc.compiler.scopes[sci]
 		if scope.typeExists(name) {
 			return true
 		}
@@ -683,25 +702,25 @@ func (c *Compile) typeExists(name string) bool {
 	return false
 }
 
-func (c *Compile) isValidType(token string) bool {
+func (fc *FileCompiler) isValidType(token string) bool {
 	i := sort.SearchStrings(basicTypes, token)
 	if i < len(basicTypes) && basicTypes[i] == token {
 		return true
 	}
-	return c.typeExists(token)
+	return fc.typeExists(token)
 }
 
-func (c *Compile) throwAtLine(msg string) {
+func (fc *FileCompiler) throwAtLine(msg string) {
 
 	fmt.Print("\033[31m") // Color red
 	fmt.Println(msg)
 	fmt.Print("\033[0m") // Color reset
-	fmt.Println("Line", c.line, "col", c.col, "in", c.name)
-	fmt.Println(c.readLine(c.line))
+	fmt.Println("Line", fc.line, "col", fc.col, "in", fc.name)
+	fmt.Println(fc.readLine(fc.line))
 	fmt.Print("\033[31m") // Color red
 	i := 0
 	mark := ""
-	for i < c.lastTokenCol {
+	for i < fc.lastTokenCol {
 		mark += " "
 		i++
 	}
@@ -712,18 +731,18 @@ func (c *Compile) throwAtLine(msg string) {
 	os.Exit(1)
 }
 
-func (c *Compile) throw(msg string) {
+func (fc *FileCompiler) throw(msg string) {
 	fmt.Println(msg)
 	os.Exit(1)
 }
 
-func (c *Compile) readLine(lineNr int) string {
+func (fc *FileCompiler) readLine(lineNr int) string {
 	i := 0
 	line := ""
 	currentLine := 1
-	for i <= c.maxIndex {
+	for i <= fc.maxIndex {
 
-		charInt := c.code[i]
+		charInt := fc.code[i]
 		char := string(charInt)
 		isLF := isNewLine(charInt)
 

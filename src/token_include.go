@@ -1,6 +1,6 @@
 
 package main
 
-func (c *Compile) handleInclude () {
-	c.throwAtLine("Include feature ready yet")
+func (fc *FileCompiler) handleInclude () {
+fc.throwAtLine("Include feature ready yet")
 }

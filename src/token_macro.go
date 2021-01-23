@@ -1,6 +1,6 @@
 
 package main
 
-func (c *Compile) handleMacro (macro string) {
-	c.throwAtLine("Macro feature ready yet")
+func (fc *FileCompiler) handleMacro (macro string) {
+fc.throwAtLine("Macro feature ready yet")
 }

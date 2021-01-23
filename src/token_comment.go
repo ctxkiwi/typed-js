@@ -1,15 +1,15 @@
 package main
 
-func (c *Compile) handleComment() {
+func (fc *FileCompiler) handleComment() {
 
-	token := string(c.code[c.index-1])
+	token := string(fc.code[fc.index-1])
 
 	if token == "/" {
-		for c.index <= c.maxIndex {
+		for fc.index <= fc.maxIndex {
 
-			charInt := c.code[c.index]
+			charInt := fc.code[fc.index]
 			// char := string(charInt)
-			c.index++
+			fc.index++
 
 			if isNewLine(charInt) {
 				return
@@ -18,24 +18,24 @@ func (c *Compile) handleComment() {
 		return
 	}
 	if token == "*" {
-		for c.index <= c.maxIndex {
+		for fc.index <= fc.maxIndex {
 
-			charInt := c.code[c.index]
+			charInt := fc.code[fc.index]
 			char := string(charInt)
-			c.index++
-			c.col++
+			fc.index++
+			fc.col++
 
 			if isNewLine(charInt) {
-				c.line++
-				c.col = 0
-				c.lastTokenCol = 0
+				fc.line++
+				fc.col = 0
+				fc.lastTokenCol = 0
 			}
 
 			if char == "*" {
-				nextToken := c.readNextChar()
+				nextToken := fc.readNextChar()
 				if nextToken == "/" {
-					c.index++
-					c.col++
+					fc.index++
+					fc.col++
 					return
 				}
 			}
@@ -43,5 +43,5 @@ func (c *Compile) handleComment() {
 		return
 	}
 
-	c.throwAtLine("Unknown token: " + token)
+	fc.throwAtLine("Unknown token: " + token)
 }

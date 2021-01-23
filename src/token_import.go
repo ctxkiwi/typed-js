@@ -1,6 +1,6 @@
 
 package main
 
-func (c *Compile) handleImport () {
-	c.throwAtLine("Import feature ready yet")
+func (fc *FileCompiler) handleImport () {
+fc.throwAtLine("Import feature ready yet")
 }

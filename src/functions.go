@@ -43,9 +43,9 @@ func isVarNameSyntax(name []byte) bool {
 	return true
 }
 
-func (c *Compile) checkVarNameSyntax(name []byte) {
+func (fc *FileCompiler) checkVarNameSyntax(name []byte) {
 	if !isVarNameSyntax(name) {
-		c.throwAtLine("Invalid variable name: " + string(name))
+	fc.throwAtLine("Invalid variable name: " + string(name))
 	}
 }
 

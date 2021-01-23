@@ -56,19 +56,25 @@ func main() {
 	sort.Strings(structsEqualToClass)
 
 	// Compile
+	compiler := Compiler{
+		scopes:     []*Scope{},
+		scopeIndex: -1,
+		readTypes:  true,
+	}
+
 	start := time.Now()
 	data, err := Asset("src/core/types.tjs")
 	if err != nil {
 		fmt.Println("Missing assets: @core/types")
 		os.Exit(1)
 	}
-	jscode := compileCode("src/core/types.tjs", []byte(data))
+	jscode := compiler.compileCode("src/core/types.tjs", []byte(data))
 
 	data, _ = Asset("src/core/globals.tjs")
-	jscode += compileCode("src/core/globals.tjs", []byte(data))
+	jscode += compiler.compileCode("src/core/globals.tjs", []byte(data))
 
 	jscode += "\n(function(){\n\n"
-	jscode += compileCode(inputFilepath, code)
+	jscode += compiler.compileCode(inputFilepath, code)
 	jscode += "\n})();\n"
 	elapsed := time.Since(start)
 

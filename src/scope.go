@@ -51,136 +51,136 @@ func (s *Scope) getVar(name string) (*Var, bool) {
 	return &result, ok
 }
 
-func (c *Compile) declareVariable(_type *VarType, isDefine bool) {
-	varName := c.getNextToken(false, true)
-	c.checkVarNameSyntax([]byte(varName))
-	_, ok := c.getVar(varName)
+func (fc *FileCompiler) declareVariable(_type *VarType, isDefine bool) {
+	varName := fc.getNextToken(false, true)
+	fc.checkVarNameSyntax([]byte(varName))
+	_, ok := fc.getVar(varName)
 	if ok {
-		c.throwAtLine("Variable name already in use: " + varName)
+		fc.throwAtLine("Variable name already in use: " + varName)
 	}
-	if c.typeExists(varName) {
-		c.throwAtLine("Name already used as a class/struct: " + varName)
+	if fc.typeExists(varName) {
+		fc.throwAtLine("Name already used as a class/struct: " + varName)
 	}
 	if !isDefine {
-		c.addResult("var " + varName)
-		c.expectToken("=")
-		c.addResult(" = ")
-		rightType := c.assignValue()
+		fc.addResult("var " + varName)
+		fc.expectToken("=")
+		fc.addResult(" = ")
+		rightType := fc.assignValue()
 		if !_type.isCompatible(rightType) {
-			c.throwTypeError(_type, rightType)
+			fc.throwTypeError(_type, rightType)
 		}
-		c.addResult(";")
+		fc.addResult(";")
 	}
-	scope := scopes[scopeIndex]
+	scope := fc.compiler.scopes[fc.compiler.scopeIndex]
 	scope.vars[varName] = Var{
 		_type: _type,
 	}
 }
 
-func (c *Compile) assignValue() *VarType {
+func (fc *FileCompiler) assignValue() *VarType {
 
 	var result *VarType
 
-	token := c.getNextToken(false, true)
+	token := fc.getNextToken(false, true)
 	if token == "(" {
-		c.addResult("(")
-		result = c.assignValue()
-		c.expectToken(")")
-		c.addResult(")")
+		fc.addResult("(")
+		result = fc.assignValue()
+		fc.expectToken(")")
+		fc.addResult(")")
 	} else if isNumberChar([]byte(token)[0]) {
 		// Number
 		number := token
-		nextChar := c.readNextChar()
+		nextChar := fc.readNextChar()
 		if nextChar == "." {
-			number += c.getNextToken(false, true)
-			number += c.getNextToken(false, true)
+			number += fc.getNextToken(false, true)
+			number += fc.getNextToken(false, true)
 		}
-		nextChar = c.readNextChar()
+		nextChar = fc.readNextChar()
 		if !isNumberSyntax([]byte(number)) || nextChar == "." {
-			c.throwAtLine("Invalid number")
+			fc.throwAtLine("Invalid number")
 		}
-		c.addResult(number)
+		fc.addResult(number)
 		_type := VarType{
 			name: "number",
 		}
 		result = &_type
 	} else if token == "null" {
-		c.addResult("null")
+		fc.addResult("null")
 		_type := VarType{
 			name: "null",
 		}
 		result = &_type
 	} else if token == "undefined" {
-		c.addResult("undefined")
+		fc.addResult("undefined")
 		_type := VarType{
 			name: "undefined",
 		}
 		result = &_type
 	} else if token == "new" {
 		// Classes
-		c.addResult("new ")
-		className := c.getNextToken(false, true)
-		class, classExists := c.getClass(className)
+		fc.addResult("new ")
+		className := fc.getNextToken(false, true)
+		class, classExists := fc.getClass(className)
 		if !classExists {
-			c.throwAtLine("Unknown class: " + className)
+			fc.throwAtLine("Unknown class: " + className)
 		}
-		c.addResult(class.name)
+		fc.addResult(class.name)
 		_type := VarType{
 			name:    className,
 			isClass: true,
 		}
 		result = &_type
-		c.expectToken("(")
-		c.addResult("(")
+		fc.expectToken("(")
+		fc.addResult("(")
 
 		constructorProp, hasConstructor := class.props["constructor"]
 		constructorType := constructorProp.varType
 
 		if !hasConstructor {
-			c.expectToken(")")
+			fc.expectToken(")")
 		} else {
 
 			// Get params
-			nextChar := c.getNextToken(true, true)
+			nextChar := fc.getNextToken(true, true)
 			params := []*VarType{}
 			for nextChar != ")" {
-				np := c.assignValue()
+				np := fc.assignValue()
 				params = append(params, np)
-				nextChar = c.getNextToken(true, false)
+				nextChar = fc.getNextToken(true, false)
 				if nextChar == "," {
-					nextChar = c.getNextToken(false, false)
-					c.addResult(",")
-					nextChar = c.getNextToken(true, false)
+					nextChar = fc.getNextToken(false, false)
+					fc.addResult(",")
+					nextChar = fc.getNextToken(true, false)
 				}
 			}
-			nextChar = c.getNextToken(false, false)
-			c.addResult(")")
+			nextChar = fc.getNextToken(false, false)
+			fc.addResult(")")
 
 			// Check param types
 			paramCount := len(params)
 			if paramCount > len(constructorType.paramTypes) {
-				c.throwAtLine("Too many params")
+				fc.throwAtLine("Too many params")
 			}
 			for i, pt := range constructorType.paramTypes {
 				if i < paramCount {
 					p := params[i]
 					if !pt.isCompatible(p) {
-						c.throwTypeError(pt, p)
+						fc.throwTypeError(pt, p)
 					}
 				} else {
 					// Check if undefined is allowed
 					if !pt.undefined {
-						c.throwAtLine("Missing params")
+						fc.throwAtLine("Missing params")
 					}
 				}
 			}
 		}
 
-		// c.throwAtLine("Class values not supported yet")
+		//fc.throwAtLine("Class values not supported yet")
 	} else if token == "function" {
 		// Functions
-		c.expectToken("(")
-		c.addResult("function(")
+		fc.expectToken("(")
+		fc.addResult("function(")
 
 		_type := VarType{
 			name:       "func",
@@ -188,79 +188,79 @@ func (c *Compile) assignValue() *VarType {
 		}
 		result = &_type
 
-		createNewScope()
-		scope := getScope()
+		fc.compiler.createNewScope()
+		scope := fc.compiler.getScope()
 
-		ntoken := c.getNextToken(true, false)
+		ntoken := fc.getNextToken(true, false)
 		if ntoken == ")" {
-			ntoken = c.getNextToken(false, false)
-			c.addResult(")")
+			ntoken = fc.getNextToken(false, false)
+			fc.addResult(")")
 		}
 		for ntoken != ")" {
-			paramName := c.getNextToken(false, false)
-			c.addResult(paramName)
-			ptype := c.getNextType()
+			paramName := fc.getNextToken(false, false)
+			fc.addResult(paramName)
+			ptype := fc.getNextType()
 			ptype.paramName = paramName
 			result.paramTypes = append(result.paramTypes, ptype)
 			scope.vars[paramName] = Var{
 				_type: ptype,
 			}
-			ntoken = c.getNextTokenSameLine()
+			ntoken = fc.getNextTokenSameLine()
 			if ntoken != "," && ntoken != ")" {
-				c.throwAtLine("Unexpected token: " + ntoken)
+				fc.throwAtLine("Unexpected token: " + ntoken)
 			}
-			c.addResult(ntoken)
+			fc.addResult(ntoken)
 		}
-		rtype := c.getNextType()
+		rtype := fc.getNextType()
 		result.returnType = rtype
 
-		c.expectToken("{")
-		c.addResult("{")
-		scopes[scopeIndex].returnType = result.returnType
-		c.compile()
-		if string(c.code[c.index-1]) != "}" {
-			c.throwAtLine("Expected: }")
+		fc.expectToken("{")
+		fc.addResult("{")
+		fc.compiler.scopes[fc.compiler.scopeIndex].returnType = result.returnType
+		fc.compile()
+		if string(fc.code[fc.index-1]) != "}" {
+			fc.throwAtLine("Expected: }")
 		}
-		c.addResult("}")
-		popScope()
+		fc.addResult("}")
+		fc.compiler.popScope()
 
 	} else if isVarNameSyntax([]byte(token)) {
 		// Vars
-		_var, ok := c.getVar(token)
+		_var, ok := fc.getVar(token)
 		if !ok {
-			c.throwAtLine("Undefined variable: " + token)
+			fc.throwAtLine("Undefined variable: " + token)
 		}
 		// Is variable name
-		c.addResult(token)
+		fc.addResult(token)
 		result = _var._type
 		result.assignable = true
 	} else if token == "\"" || token == "'" {
 		// String
-		c.addResult(token)
+		fc.addResult(token)
 		char := ""
 		lastChar := ""
-		for c.index <= c.maxIndex {
+		for fc.index <= fc.maxIndex {
 			lastChar = char
-			charInt := c.code[c.index]
+			charInt := fc.code[fc.index]
 			char = string(charInt)
-			c.index++
-			c.col++
-			c.lastTokenCol++
-			c.addResult(char)
+			fc.index++
+			fc.col++
+			fc.lastTokenCol++
+			fc.addResult(char)
 			if isNewLine(charInt) {
 				if lastChar != "\\" {
-					c.throwAtLine("Unexpected newline")
+					fc.throwAtLine("Unexpected newline")
 				}
-				c.line++
-				c.col = 0
-				c.lastTokenCol = 0
+				fc.line++
+				fc.col = 0
+				fc.lastTokenCol = 0
 			}
 			if char == token && lastChar != "\\" {
 				break
 			}
 		}
-		if c.index > c.maxIndex {
-			c.throwAtLine("You forgot to close a string somewhere")
+		if fc.index > fc.maxIndex {
+			fc.throwAtLine("You forgot to close a string somewhere")
 		}
 
 		_type := VarType{
@@ -270,23 +270,23 @@ func (c *Compile) assignValue() *VarType {
 
 	} else if token == "[" {
 		// Array
-		c.addResult("[")
+		fc.addResult("[")
 
 		returnType := VarType{
 			name:       "array",
 			assignable: false,
 		}
 
-		token = c.getNextToken(true, false)
+		token = fc.getNextToken(true, false)
 		if token == "]" {
-			token = c.getNextToken(false, false)
+			token = fc.getNextToken(false, false)
 		} else {
 			for token != "]" {
 				if token == "" {
-					c.throwAtLine("Unexpected end of code")
+					fc.throwAtLine("Unexpected end of code")
 				}
 
-				subType := c.assignValue()
+				subType := fc.assignValue()
 				if returnType.subtype == nil {
 					returnType.subtype = subType
 				} else {
@@ -297,106 +297,106 @@ func (c *Compile) assignValue() *VarType {
 						returnType.subtype.undefined = true
 					}
 					if !returnType.subtype.isCompatible(subType) {
-						c.throwTypeError(returnType.subtype, subType)
+						fc.throwTypeError(returnType.subtype, subType)
 					}
 				}
 
-				token = c.getNextToken(false, false)
+				token = fc.getNextToken(false, false)
 				if token == "," {
-					c.addResult(",")
+					fc.addResult(",")
 				}
 			}
 		}
-		c.addResult("]")
+		fc.addResult("]")
 
 		result = &returnType
 
 	} else if token == "{" {
 
-		c.addResult("{")
+		fc.addResult("{")
 		returnType := VarType{
 			name:       "object",
 			props:      map[string]*Property{},
 			assignable: false,
 		}
 
-		// s, _ := c.getStruct(leftType.name)
+		// s, _ := fc.getStruct(leftType.name)
 		extraSpace++
-		token := c.getNextToken(false, false)
+		token := fc.getNextToken(false, false)
 		for token != "}" {
 			if token == "" {
-				c.throwAtLine("Unexpected end of code")
+				fc.throwAtLine("Unexpected end of code")
 			}
-			c.checkVarNameSyntax([]byte(token))
+			fc.checkVarNameSyntax([]byte(token))
 			varName := token
-			c.addResult(varName)
-			c.expectToken(":")
-			c.addResult(":")
+			fc.addResult(varName)
+			fc.expectToken(":")
+			fc.addResult(":")
 			// Read value
-			propType := c.assignValue()
+			propType := fc.assignValue()
 			newProp := Property{
 				varType: propType,
 			}
 			returnType.props[varName] = &newProp
 
-			token = c.getNextToken(true, false)
+			token = fc.getNextToken(true, false)
 			if token == "}" {
 				extraSpace--
 			}
-			token = c.getNextToken(false, false)
+			token = fc.getNextToken(false, false)
 			if token == "," {
-				c.addResult(",")
-				token = c.getNextToken(false, false)
+				fc.addResult(",")
+				token = fc.getNextToken(false, false)
 			}
 		}
 
 		// todo: Autofill missing fields
 
 		//
-		c.addResult("}")
+		fc.addResult("}")
 		result = &returnType
 	} else {
-		c.throwAtLine("Setting value type '" + token + "' is not supported yet")
+		fc.throwAtLine("Setting value type '" + token + "' is not supported yet")
 	}
 
 	// Handle trailing . [ or (
 	for {
-		nextChar := c.readNextChar()
+		nextChar := fc.readNextChar()
 		if (result.name == "array") && nextChar == "[" {
-			c.throwAtLine("Array accessors not ready yet")
+			fc.throwAtLine("Array accessors not ready yet")
 		} else if (result.name == "func") && nextChar == "(" {
 			// Function
-			nextChar := c.getNextToken(false, true)
-			c.addResult("(")
-			nextChar = c.getNextToken(true, true)
+			nextChar := fc.getNextToken(false, true)
+			fc.addResult("(")
+			nextChar = fc.getNextToken(true, true)
 			// Check param types
 			params := []*VarType{}
 			for nextChar != ")" {
-				np := c.assignValue()
+				np := fc.assignValue()
 				params = append(params, np)
-				nextChar = c.getNextToken(true, false)
+				nextChar = fc.getNextToken(true, false)
 				if nextChar == "," {
-					nextChar = c.getNextToken(false, false)
-					c.addResult(",")
-					nextChar = c.getNextToken(true, false)
+					nextChar = fc.getNextToken(false, false)
+					fc.addResult(",")
+					nextChar = fc.getNextToken(true, false)
 				}
 			}
-			nextChar = c.getNextToken(false, false)
-			c.addResult(")")
+			nextChar = fc.getNextToken(false, false)
+			fc.addResult(")")
 			paramCount := len(params)
 			if paramCount > len(result.paramTypes) {
-				c.throwAtLine("Too many params")
+				fc.throwAtLine("Too many params")
 			}
 			for i, pt := range result.paramTypes {
 				if i < paramCount {
 					p := params[i]
 					if !pt.isCompatible(p) {
-						c.throwTypeError(pt, p)
+						fc.throwTypeError(pt, p)
 					}
 				} else {
 					// Check if undefined is allowed
 					if !pt.undefined {
-						c.throwAtLine("Missing params")
+						fc.throwAtLine("Missing params")
 					}
 				}
 			}
@@ -406,47 +406,47 @@ func (c *Compile) assignValue() *VarType {
 			result.assignable = false
 
 		} else if nextChar == "." || nextChar == "[" {
-			nextChar := c.getNextToken(false, true)
+			nextChar := fc.getNextToken(false, true)
 			if nextChar == "[" {
-				c.throwAtLine("Dynamic properties are not allowed")
+				fc.throwAtLine("Dynamic properties are not allowed")
 			}
-			c.addResult(".")
-			propName := c.getNextToken(false, true)
-			if len(c.whitespace) > 0 {
-				c.throwAtLine("Unexpected whitespace")
+			fc.addResult(".")
+			propName := fc.getNextToken(false, true)
+			if len(fc.whitespace) > 0 {
+				fc.throwAtLine("Unexpected whitespace")
 			}
-			c.addResult(propName)
+			fc.addResult(propName)
 			// check if struct
-			s, ok := c.getStruct(result.name)
-			class, foundClass := c.getClass(result.name)
+			s, ok := fc.getStruct(result.name)
+			class, foundClass := fc.getClass(result.name)
 			if ok {
 				prop, ok := s.props[propName]
 				if !ok {
-					c.throwAtLine("Undefined property: " + propName + " on struct: " + result.name)
+					fc.throwAtLine("Undefined property: " + propName + " on struct: " + result.name)
 				}
 				result = prop.varType
 				result.assignable = true
 			} else if foundClass {
 				prop, ok := class.props[propName]
 				if !ok {
-					c.throwAtLine("Undefined property: " + propName + " on class: " + result.name)
+					fc.throwAtLine("Undefined property: " + propName + " on class: " + result.name)
 				}
 				result = prop.varType
 				result.assignable = true
 			} else {
 				// check if class
-				class, ok := c.getClass(result.name)
+				class, ok := fc.getClass(result.name)
 				if ok {
 					prop, ok := class.props[propName]
 					if !ok {
-						c.throwAtLine("Undefined property: " + propName + " on class: " + result.name)
+						fc.throwAtLine("Undefined property: " + propName + " on class: " + result.name)
 					}
-					result = c.assignValue()
+					result = fc.assignValue()
 					if !prop.varType.isCompatible(result) {
-						c.throwTypeError(prop.varType, result)
+						fc.throwTypeError(prop.varType, result)
 					}
 				} else {
-					c.throwAtLine("Cannot load struct/class: " + result.name + " (compiler bug)")
+					fc.throwAtLine("Cannot load struct/class: " + result.name + " (compiler bug)")
 				}
 			}
 		} else {
@@ -455,16 +455,16 @@ func (c *Compile) assignValue() *VarType {
 	}
 
 	// Handle operators
-	nextToken := c.getNextToken(true, true)
+	nextToken := fc.getNextToken(true, true)
 	i := sort.SearchStrings(operators, nextToken)
 	if i < len(operators) && operators[i] == nextToken {
-		nextToken = c.getNextToken(false, false)
+		nextToken = fc.getNextToken(false, false)
 		if nextToken != "++" && nextToken != "--" {
-			c.addResult(" " + nextToken + " ")
+			fc.addResult(" " + nextToken + " ")
 		} else {
-			c.addResult(nextToken)
+			fc.addResult(nextToken)
 		}
-		rightType := c.assignValue()
+		rightType := fc.assignValue()
 		showError := false
 		leftLower := strings.ToLower(result.name)
 		rightLower := strings.ToLower(rightType.name)
@@ -499,10 +499,10 @@ func (c *Compile) assignValue() *VarType {
 				showError = true
 			}
 		default:
-			c.throwAtLine("Operator not supported yet: '" + nextToken + "'")
+			fc.throwAtLine("Operator not supported yet: '" + nextToken + "'")
 		}
 		if showError {
-			c.throwAtLine("Cannot use operator '" + nextToken + "' on type " + result.displayName() + " && " + rightType.displayName() + "")
+			fc.throwAtLine("Cannot use operator '" + nextToken + "' on type " + result.displayName() + " && " + rightType.displayName() + "")
 		}
 	}
 

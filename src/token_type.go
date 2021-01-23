@@ -1,84 +1,71 @@
 package main
 
-func (fc *FileCompiler) handleClass(isDefine bool) {
+func (fc *FileCompiler) handleType(isLocal bool, isDefine bool, isStruct bool, isClass bool) {
 
 	name := fc.getNextToken(false, true)
-	fc.checkVarNameSyntax([]byte(name))
 
-	if fc.typeExists(name) {
-		fc.throwAtLine("Struct/class name already in use: " + name)
-	}
 	_, ok := fc.getVar(name)
 	if ok {
 		fc.throwAtLine("Name already used as a variable: " + name)
 	}
 
-	globalName, class := createNewClass()
-
-	scope := fc.compiler.scopes[fc.compiler.scopeIndex]
-	scope.classes[name] = globalName
-
-	token := fc.getNextToken(false, true)
-
-	// Get fields
-	if token != "{" {
-		fc.throwAtLine("Unexpected token: " + token)
+	var _struct *VarType
+	var _class *VarType
+	if isStruct {
+		_struct, _ = fc.getStruct(name)
+	}
+	if isClass {
+		_class, _ = fc.getClass(name)
 	}
 
-	functionCode := map[string]string{}
+	token := fc.getNextToken(false, true)
+	if isDefine && token == "," {
+		fc.expectToken("class")
+		fc.getNextToken(false, true)
+		fc.getNextTokenSameLine()
+	}
 
+	// token = {
+	// Get fields
+	functionCode := map[string]string{}
 	token = fc.getNextToken(false, false)
 	for token != "}" {
-		if token == "" {
-			fc.throwAtLine("Unexpected end of code")
-		}
-		fc.checkVarNameSyntax([]byte(token))
+
 		varName := token
-		_, ok := class.props[varName]
-		if ok {
-			fc.throwAtLine("Property name '" + varName + "' already exists")
-		}
 		fc.expectToken(":")
 
-		// Read type or function
-		prop := Property{}
+		// Read type
 		token = fc.getNextToken(true, true)
 
-		if varName == "constructor" && token != "function" {
-			fc.throwAtLine("Constructor must be a function")
-		}
-
-		if !isDefine && token == "function" {
+		if isClass && !isDefine && token == "function" {
 			fc.recordResult()
-			t := fc.assignValue()
-			_typeOfType, _ := fc.getTypeOfType(t.name)
-			t.toft = _typeOfType
-			prop.varType = t
+			fc.assignValue()
 			functionCode[varName] = fc.getRecording()
 		} else {
-			t := fc.getNextType()
-			_typeOfType, _ := fc.getTypeOfType(t.name)
-			t.toft = _typeOfType
-			prop.varType = t
+			fc.getNextType()
 		}
+
 		// Check default
 		char := fc.getNextCharacterOnLine()
 		if char == "=" {
 			value, _ := fc.getNextValueToken()
-			prop._default = value
+			if _struct != nil {
+				_struct.props[varName]._default = value
+			}
+			if _class != nil {
+				_class.props[varName]._default = value
+			}
 		}
-
-		// Store property
-		class.props[varName] = &prop
 
 		token = fc.getNextToken(false, false)
 	}
 
 	// Write result code
-	if !isDefine {
+	if isClass && !isDefine {
+		globalName := _class.name
 		fc.addSpace()
 		fc.addResult("var " + globalName + " = function(")
-		constructorProp, hasConstructor := class.props["constructor"]
+		constructorProp, hasConstructor := _class.props["constructor"]
 		if hasConstructor {
 			for i, vtype := range constructorProp.varType.paramTypes {
 				if i > 0 {
