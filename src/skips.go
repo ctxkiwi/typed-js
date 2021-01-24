@@ -1,6 +1,8 @@
 package main
 
-import "sort"
+import (
+	"sort"
+)
 
 func (fc *FileCompiler) skipFunction() *VarType {
 	fc.expectToken("(")
@@ -45,6 +47,14 @@ func (fc *FileCompiler) skipScope(endChar string) {
 		charInt := fc.code[fc.index]
 		char = string(charInt)
 
+		fc.index++
+		fc.col++
+		fc.lastTokenCol++
+
+		if isNewLine(charInt) {
+			fc.line++
+		}
+
 		if level == 0 && char == endChar {
 			return
 		}
@@ -60,10 +70,6 @@ func (fc *FileCompiler) skipScope(endChar string) {
 		} else if char == "}" {
 			level--
 		}
-
-		fc.index++
-		fc.col++
-		fc.lastTokenCol++
 	}
 
 	fc.throwAtLine("Unexpected end of code, expected: " + endChar)
@@ -81,13 +87,17 @@ func (fc *FileCompiler) skipString(endStrChar string) {
 		charInt := fc.code[fc.index]
 		char = string(charInt)
 
-		if char == endStrChar && prevChar != "\\" {
-			return
+		if isNewLine(charInt) {
+			fc.line++
 		}
 
 		fc.index++
 		fc.col++
 		fc.lastTokenCol++
+
+		if char == endStrChar && prevChar != "\\" {
+			return
+		}
 	}
 
 	fc.throwAtLine("Unexpected end of code, expected: " + endStrChar)

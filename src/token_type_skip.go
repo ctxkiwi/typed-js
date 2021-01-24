@@ -64,10 +64,20 @@ func (fc *FileCompiler) handleTypeSkip(isLocal bool, isDefine bool, isStruct boo
 		}
 		fc.checkVarNameSyntax([]byte(token))
 		varName := token
-		_, ok := s.props[varName]
-		if ok {
-			fc.throwAtLine("Property name '" + varName + "' already exists")
+
+		if s != nil {
+			_, ok := s.props[varName]
+			if ok {
+				fc.throwAtLine("Property name '" + varName + "' already exists")
+			}
 		}
+		if class != nil {
+			_, ok := class.props[varName]
+			if ok {
+				fc.throwAtLine("Property name '" + varName + "' already exists")
+			}
+		}
+
 		fc.expectToken(":")
 
 		// Read type
@@ -79,6 +89,7 @@ func (fc *FileCompiler) handleTypeSkip(isLocal bool, isDefine bool, isStruct boo
 		}
 
 		if isClass && !isDefine && token == "function" {
+			fc.getNextToken(false, true)
 			t := fc.skipFunction()
 			// _typeOfType, _ := fc.getTypeOfType(t.name)
 			// t.toft = _typeOfType
@@ -98,7 +109,9 @@ func (fc *FileCompiler) handleTypeSkip(isLocal bool, isDefine bool, isStruct boo
 		}
 
 		// Store property
-		s.props[varName] = &prop
+		if s != nil {
+			s.props[varName] = &prop
+		}
 		if class != nil {
 			class.props[varName] = &prop
 		}

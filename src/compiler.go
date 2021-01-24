@@ -72,6 +72,7 @@ func (c *Compiler) compileCode(name string, code []byte) string {
 		compiler: c,
 
 		index:     0,
+		col:       0,
 		maxIndex:  len(code) - 1,
 		line:      1,
 		exitScope: false,
@@ -84,6 +85,14 @@ func (c *Compiler) compileCode(name string, code []byte) string {
 		c.createNewScope()
 	}
 
+	fmt.Println("Read only mode on")
+	c.readTypes = true
+	fc.compile()
+	fmt.Println("Read only mode off")
+	fc.line = 1
+	fc.index = 0
+	fc.col = 0
+	c.readTypes = false
 	return fc.compile()
 }
 
@@ -550,6 +559,10 @@ func (fc *FileCompiler) handleNextWord() {
 		if scope.returnType.name == "void" {
 			return
 		}
+		if fc.compiler.readTypes {
+			fc.skipValue()
+			return
+		}
 		rtype := fc.assignValue()
 		fc.addResult(";")
 		if !scope.returnType.isCompatible(rtype) {
@@ -568,13 +581,17 @@ func (fc *FileCompiler) handleNextWord() {
 		}
 		if fc.compiler.readTypes {
 			fc.handleTypeSkip(isLocal, isDefine, true, false)
-		} else {
-			fc.handleType(isLocal, isDefine, true, false)
+			return
 		}
+		fc.handleType(isLocal, isDefine, true, false)
 		return
 	}
 
 	if token == "class" {
+		if fc.compiler.readTypes {
+			fc.handleTypeSkip(false, isDefine, false, true)
+			return
+		}
 		fc.handleType(false, isDefine, false, true)
 		return
 	}
@@ -606,7 +623,32 @@ func (fc *FileCompiler) handleNextWord() {
 			fc.col = 0
 		}
 		_type := fc.getNextType()
+		if fc.compiler.readTypes {
+			fc.getNextToken(false, true)
+			if !isDefine {
+				fc.expectToken("=")
+				fc.skipValue()
+			}
+			return
+		}
 		fc.declareVariable(_type, isDefine)
+		return
+	}
+
+	if fc.compiler.readTypes || isVarNameSyntax([]byte(token)) || token == "(" || token == "[" {
+		fc.index -= len(token)
+		fc.col -= len(token)
+
+		fc.skipValue()
+		nextToken := fc.getNextToken(true, false)
+		if nextToken == "=" {
+			fc.getNextToken(false, false)
+			fc.skipValue()
+		}
+		nextChar := fc.getNextToken(true, false)
+		if nextChar == ";" {
+			fc.getNextToken(false, false)
+		}
 		return
 	}
 
@@ -614,6 +656,7 @@ func (fc *FileCompiler) handleNextWord() {
 	if isVar || token == "(" || token == "[" {
 		fc.index -= len(token)
 		fc.col -= len(token)
+
 		vt := fc.assignValue()
 		if vt.assignable {
 			// Check for = sign
