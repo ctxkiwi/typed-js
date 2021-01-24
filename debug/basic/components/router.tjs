@@ -1,0 +1,11 @@
+
+class Router {
+
+    app: App
+
+    constructor: function(App app) void {
+        this.app = app
+    }
+
+}
+

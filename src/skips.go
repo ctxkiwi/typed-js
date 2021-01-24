@@ -75,10 +75,11 @@ func (fc *FileCompiler) skipScope(endChar string) {
 	fc.throwAtLine("Unexpected end of code, expected: " + endChar)
 }
 
-func (fc *FileCompiler) skipString(endStrChar string) {
+func (fc *FileCompiler) skipString(endStrChar string) string {
 
 	char := ""
 	prevChar := ""
+	result := endStrChar
 
 	for fc.index <= fc.maxIndex {
 
@@ -95,12 +96,16 @@ func (fc *FileCompiler) skipString(endStrChar string) {
 		fc.col++
 		fc.lastTokenCol++
 
+		result += char
+
 		if char == endStrChar && prevChar != "\\" {
-			return
+			return result
 		}
 	}
 
 	fc.throwAtLine("Unexpected end of code, expected: " + endStrChar)
+
+	return ""
 }
 
 func (fc *FileCompiler) skipValue() {

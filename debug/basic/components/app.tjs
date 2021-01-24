@@ -1,6 +1,9 @@
 
 class App {
+
     loading: bool
+
     constructor: function() void {
     }
+
 }

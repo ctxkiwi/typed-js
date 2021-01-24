@@ -1,5 +1,7 @@
 package main
 
+import "os"
+
 func isAlphaChar(c byte) bool {
 
 	if c >= 65 && c <= 90 {
@@ -45,7 +47,7 @@ func isVarNameSyntax(name []byte) bool {
 
 func (fc *FileCompiler) checkVarNameSyntax(name []byte) {
 	if !isVarNameSyntax(name) {
-	fc.throwAtLine("Invalid variable name: " + string(name))
+		fc.throwAtLine("Invalid variable name: " + string(name))
 	}
 }
 
@@ -81,4 +83,12 @@ func isWhiteSpace(c byte) bool {
 
 func isNewLine(c byte) bool {
 	return c == 10
+}
+
+func fileExists(filepath string) bool {
+	info, err := os.Stat(filepath)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return !info.IsDir()
 }
