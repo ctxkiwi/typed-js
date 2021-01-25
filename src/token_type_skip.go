@@ -7,7 +7,7 @@ func (fc *FileCompiler) handleTypeSkip(isLocal bool, isDefine bool, isStruct boo
 	}
 
 	if !isLocal {
-		if fc.compiler.scopeIndex > 0 {
+		if fc.scopeIndex > 0 {
 			fc.throwAtLine("You must use 'local' to create a local struct")
 		}
 	}
@@ -23,7 +23,7 @@ func (fc *FileCompiler) handleTypeSkip(isLocal bool, isDefine bool, isStruct boo
 	var s *VarType = nil
 	var globalName string
 
-	scope := fc.compiler.scopes[fc.compiler.scopeIndex]
+	scope := fc.scopes[fc.scopeIndex]
 	if isStruct {
 		globalName, s = createNewStruct()
 		s.isLocal = isLocal

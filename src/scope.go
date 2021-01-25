@@ -71,7 +71,7 @@ func (fc *FileCompiler) declareVariable(_type *VarType, isDefine bool) {
 		}
 		fc.addResult(";")
 	}
-	scope := fc.compiler.scopes[fc.compiler.scopeIndex]
+	scope := fc.scopes[fc.scopeIndex]
 	scope.vars[varName] = Var{
 		_type: _type,
 	}
@@ -188,8 +188,8 @@ func (fc *FileCompiler) assignValue() *VarType {
 		}
 		result = &_type
 
-		fc.compiler.createNewScope()
-		scope := fc.compiler.getScope()
+		fc.createNewScope()
+		scope := fc.getScope()
 
 		ntoken := fc.getNextToken(true, false)
 		if ntoken == ")" {
@@ -216,13 +216,13 @@ func (fc *FileCompiler) assignValue() *VarType {
 
 		fc.expectToken("{")
 		fc.addResult("{")
-		fc.compiler.scopes[fc.compiler.scopeIndex].returnType = result.returnType
+		fc.scopes[fc.scopeIndex].returnType = result.returnType
 		fc.compile()
 		if string(fc.code[fc.index-1]) != "}" {
 			fc.throwAtLine("Expected: }")
 		}
 		fc.addResult("}")
-		fc.compiler.popScope()
+		fc.popScope()
 
 	} else if isVarNameSyntax([]byte(token)) {
 		// Vars

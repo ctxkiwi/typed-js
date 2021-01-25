@@ -13,15 +13,16 @@ var operators = []string{"+", "-", "*", "/", "==", "===", "<", ">", "<=", ">=", 
 var operatorChars = []string{"+", "-", "*", "/", "=", "<", ">", "&", "|"}
 
 type Compiler struct {
-	scopes     []*Scope
-	scopeIndex int
-	readTypes  bool
+	readTypes bool
 }
 
 type FileCompiler struct {
 	name string
 
 	compiler *Compiler
+
+	scopes     []*Scope
+	scopeIndex int
 
 	index        int
 	maxIndex     int
@@ -58,7 +59,7 @@ var extraSpace = 0
 func (fc *FileCompiler) addSpace() {
 	i := -1 - extraSpace
 	result := ""
-	for i < fc.compiler.scopeIndex {
+	for i < fc.scopeIndex {
 		result += "    "
 		i++
 	}
@@ -72,6 +73,9 @@ func (c *Compiler) compileCode(name string, code []byte) string {
 
 		compiler: c,
 
+		scopes:     []*Scope{},
+		scopeIndex: -1,
+
 		index:     0,
 		col:       0,
 		maxIndex:  len(code) - 1,
@@ -83,9 +87,7 @@ func (c *Compiler) compileCode(name string, code []byte) string {
 		result:   "",
 	}
 
-	if len(c.scopes) == 0 {
-		c.createNewScope()
-	}
+	fc.createNewScope()
 
 	fmt.Println("Read only mode on")
 	c.readTypes = true
@@ -115,22 +117,22 @@ func (fc *FileCompiler) compile() string {
 	return fc.result
 }
 
-func (c *Compiler) createNewScope() {
+func (fc *FileCompiler) createNewScope() {
 	s := Scope{
 		structs: map[string]string{},
 		classes: map[string]string{},
 		vars:    map[string]Var{},
 	}
-	c.scopes = append(c.scopes, &s)
-	c.scopeIndex++
+	fc.scopes = append(fc.scopes, &s)
+	fc.scopeIndex++
 }
 
-func (c *Compiler) getScope() *Scope {
-	return c.scopes[c.scopeIndex]
+func (fc *FileCompiler) getScope() *Scope {
+	return fc.scopes[fc.scopeIndex]
 }
-func (c *Compiler) popScope() {
-	c.scopes = c.scopes[:len(c.scopes)-1]
-	c.scopeIndex--
+func (fc *FileCompiler) popScope() {
+	fc.scopes = fc.scopes[:len(fc.scopes)-1]
+	fc.scopeIndex--
 }
 
 func (fc *FileCompiler) getNextToken(readOnly bool, sameLine bool) string {
@@ -542,7 +544,7 @@ func (fc *FileCompiler) handleNextWord() {
 		fc.handleMacro(word)
 		return
 	}
-	if token == "}" && fc.compiler.scopeIndex > 0 {
+	if token == "}" && fc.scopeIndex > 0 {
 		fc.exitScope = true
 		return
 	}
@@ -554,7 +556,7 @@ func (fc *FileCompiler) handleNextWord() {
 
 	if token == "return" {
 		fc.addResult("return ")
-		scope := fc.compiler.getScope()
+		scope := fc.getScope()
 		if scope.returnType == nil {
 			fc.throwAtLine("Unexpected return statement")
 		}
@@ -695,9 +697,9 @@ func (fc *FileCompiler) handleNextWord() {
 }
 
 func (fc *FileCompiler) getStruct(name string) (*VarType, bool) {
-	var sci = fc.compiler.scopeIndex
+	var sci = fc.scopeIndex
 	for sci >= 0 {
-		scope := fc.compiler.scopes[sci]
+		scope := fc.scopes[sci]
 		realName, ok := scope.structs[name]
 		if ok {
 			result, ok := allStructs[realName]
@@ -709,9 +711,9 @@ func (fc *FileCompiler) getStruct(name string) (*VarType, bool) {
 }
 
 func (fc *FileCompiler) getClass(name string) (*VarType, bool) {
-	var sci = fc.compiler.scopeIndex
+	var sci = fc.scopeIndex
 	for sci >= 0 {
-		scope := fc.compiler.scopes[sci]
+		scope := fc.scopes[sci]
 		realName, ok := scope.classes[name]
 		if ok {
 			result, ok := allClasses[realName]
@@ -723,9 +725,9 @@ func (fc *FileCompiler) getClass(name string) (*VarType, bool) {
 }
 
 func (fc *FileCompiler) getVar(name string) (*Var, bool) {
-	var sci = fc.compiler.scopeIndex
+	var sci = fc.scopeIndex
 	for sci >= 0 {
-		scope := fc.compiler.scopes[sci]
+		scope := fc.scopes[sci]
 		result, ok := scope.vars[name]
 		if ok {
 			return &result, ok
@@ -736,9 +738,9 @@ func (fc *FileCompiler) getVar(name string) (*Var, bool) {
 }
 
 func (fc *FileCompiler) typeExists(name string) bool {
-	var sci = fc.compiler.scopeIndex
+	var sci = fc.scopeIndex
 	for sci >= 0 {
-		scope := fc.compiler.scopes[sci]
+		scope := fc.scopes[sci]
 		if scope.typeExists(name) {
 			return true
 		}

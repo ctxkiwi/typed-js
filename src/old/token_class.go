@@ -15,7 +15,7 @@ func (fc *FileCompiler) handleClass(isDefine bool) {
 
 	globalName, class := createNewClass()
 
-	scope := fc.compiler.scopes[fc.compiler.scopeIndex]
+	scope := fc.scopes[fc.scopeIndex]
 	scope.classes[name] = globalName
 
 	token := fc.getNextToken(false, true)

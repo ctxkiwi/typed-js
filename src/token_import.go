@@ -66,6 +66,9 @@ func (fc *FileCompiler) handleImport() {
 
 				compiler: fc.compiler,
 
+				scopes:     []*Scope{},
+				scopeIndex: -1,
+
 				index:     0,
 				col:       0,
 				maxIndex:  len(code) - 1,
@@ -77,13 +80,24 @@ func (fc *FileCompiler) handleImport() {
 				result:   "",
 			}
 
-			allFileCompilers[filepath] = nfc
+			nfc.createNewScope()
 
-			// todo: create new scope
+			allFileCompilers[filepath] = nfc
 
 			nfc.compile()
 		}
 		// Check if imports exist
+		for typeName, typeAlias := range imports {
+
+			if nfc.typeExists(typeName) {
+				nfc.throwAtLine("Cannot import, class/struct not found: " + typeName)
+			}
+
+			if fc.typeExists(typeAlias) {
+				fc.throwAtLine("Cannot import, name already in use: " + typeAlias)
+			}
+
+		}
 
 		//
 		return

@@ -57,9 +57,7 @@ func main() {
 
 	// Compile
 	compiler := Compiler{
-		scopes:     []*Scope{},
-		scopeIndex: -1,
-		readTypes:  true,
+		readTypes: true,
 	}
 
 	start := time.Now()
