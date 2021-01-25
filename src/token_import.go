@@ -1,11 +1,14 @@
 package main
 
 import (
+	"fmt"
+	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 )
 
-var allImports map[string]*FileCompiler
+var allFileCompilers map[string]*FileCompiler
 
 func (fc *FileCompiler) handleImport() {
 
@@ -40,14 +43,58 @@ func (fc *FileCompiler) handleImport() {
 	from := strings.Trim(fc.skipString(token), token) + ".tjs"
 	dir := filepath.Dir(fc.name) + "/"
 
-	filepath, _ := filepath.Abs(dir + from)
-
-	if !fileExists(filepath) {
-		fc.throwAtLine("File not found: " + from + " (" + filepath + ")")
+	filepath, err := filepath.Abs(dir + from)
+	if err != nil {
+		fc.throwAtLine("Invalid filepath: " + from)
 	}
 
 	if fc.compiler.readTypes {
+		if !fileExists(filepath) {
+			fc.throwAtLine("File not found: " + from + " (" + filepath + ")")
+		}
+
+		nfc, exists := allFileCompilers[filepath]
+		if !exists {
+
+			code, err := ioutil.ReadFile(filepath)
+			if err != nil {
+				fmt.Println("Cant read file: " + filepath)
+				os.Exit(1)
+			}
+			nfc = &FileCompiler{
+				name: filepath,
+
+				compiler: fc.compiler,
+
+				index:     0,
+				col:       0,
+				maxIndex:  len(code) - 1,
+				line:      1,
+				exitScope: false,
+
+				compiled: false,
+				code:     code,
+				result:   "",
+			}
+
+			allFileCompilers[filepath] = nfc
+
+			// todo: create new scope
+
+			nfc.compile()
+		}
+		// Check if imports exist
+
+		//
+		return
+	} else {
+		nfc, _ := allFileCompilers[filepath]
+		if !nfc.compiled {
+			nfc.line = 1
+			nfc.index = 0
+			nfc.col = 0
+			nfc.compile()
+		}
 	}
 
-	fc.throwAtLine("Import feature ready yet")
 }

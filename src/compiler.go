@@ -31,6 +31,7 @@ type FileCompiler struct {
 	whitespace   string
 	exitScope    bool
 
+	compiled     bool
 	code         []byte
 	result       string
 	resultBlocks []string
@@ -77,8 +78,9 @@ func (c *Compiler) compileCode(name string, code []byte) string {
 		line:      1,
 		exitScope: false,
 
-		code:   code,
-		result: "",
+		compiled: false,
+		code:     code,
+		result:   "",
 	}
 
 	if len(c.scopes) == 0 {
