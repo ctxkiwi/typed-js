@@ -16,7 +16,7 @@ func (fc *FileCompiler) handleTypeSkip(isLocal bool, isDefine bool, isStruct boo
 	fc.checkVarNameSyntax([]byte(name))
 
 	if fc.typeExists(name) {
-		fc.throwAtLine("Struct/class name already in use: " + name)
+		fc.throwAtLine("Type name already in use: " + name)
 	}
 
 	var class *VarType = nil
@@ -25,15 +25,15 @@ func (fc *FileCompiler) handleTypeSkip(isLocal bool, isDefine bool, isStruct boo
 
 	scope := fc.scopes[fc.scopeIndex]
 	if isStruct {
-		globalName, s = createNewStruct()
+		globalName, s = createNewType(false)
 		s.isLocal = isLocal
-		scope.structs[name] = globalName
+		scope.types[name] = globalName
 	}
 
 	if isClass {
-		globalName, class = createNewClass()
+		globalName, class = createNewType(true)
 		class.isLocal = isLocal
-		scope.classes[name] = globalName
+		scope.types[name] = globalName
 	}
 
 	token := fc.getNextToken(false, true)
@@ -44,8 +44,8 @@ func (fc *FileCompiler) handleTypeSkip(isLocal bool, isDefine bool, isStruct boo
 		if fc.typeExists(className) {
 			fc.throwAtLine("Struct/class name already in use: " + className)
 		}
-		globalName, class = createNewClass()
-		scope.classes[className] = globalName
+		globalName, class = createNewType(true)
+		scope.types[className] = globalName
 		token = fc.getNextTokenSameLine()
 	}
 

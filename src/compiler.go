@@ -119,9 +119,8 @@ func (fc *FileCompiler) compile() string {
 
 func (fc *FileCompiler) createNewScope() {
 	s := Scope{
-		structs: map[string]string{},
-		classes: map[string]string{},
-		vars:    map[string]Var{},
+		types: map[string]string{},
+		vars:  map[string]Var{},
 	}
 	fc.scopes = append(fc.scopes, &s)
 	fc.scopeIndex++
@@ -488,13 +487,8 @@ func (fc *FileCompiler) getNextType() *VarType {
 			result.returnType = rtype
 		}
 	} else {
-		_, foundStruct := fc.getStruct(token)
-		_, foundClass := fc.getClass(token)
-		if foundStruct {
-			result.toft = "struct"
-		} else if foundClass {
-			result.toft = "class"
-		} else {
+		_, foundType := fc.getType(token)
+		if !foundType {
 			fc.throwAtLine("Unknown type: " + token)
 		}
 		nchar := fc.readNextChar()
@@ -639,7 +633,7 @@ func (fc *FileCompiler) handleNextWord() {
 		return
 	}
 
-	if fc.compiler.readTypes || isVarNameSyntax([]byte(token)) || token == "(" || token == "[" {
+	if fc.compiler.readTypes && (isVarNameSyntax([]byte(token)) || token == "(" || token == "[") {
 		fc.index -= len(token)
 		fc.col -= len(token)
 
@@ -696,27 +690,13 @@ func (fc *FileCompiler) handleNextWord() {
 	fc.throwAtLine("Unexpected token: " + token)
 }
 
-func (fc *FileCompiler) getStruct(name string) (*VarType, bool) {
+func (fc *FileCompiler) getType(name string) (*VarType, bool) {
 	var sci = fc.scopeIndex
 	for sci >= 0 {
 		scope := fc.scopes[sci]
-		realName, ok := scope.structs[name]
+		realName, ok := scope.types[name]
 		if ok {
-			result, ok := allStructs[realName]
-			return result, ok
-		}
-		sci--
-	}
-	return nil, false
-}
-
-func (fc *FileCompiler) getClass(name string) (*VarType, bool) {
-	var sci = fc.scopeIndex
-	for sci >= 0 {
-		scope := fc.scopes[sci]
-		realName, ok := scope.classes[name]
-		if ok {
-			result, ok := allClasses[realName]
+			result, ok := allTypes[realName]
 			return result, ok
 		}
 		sci--
@@ -775,7 +755,8 @@ func (fc *FileCompiler) throwAtLine(msg string) {
 	fmt.Println(mark)
 	fmt.Print("\033[0m") // Color reset
 
-	os.Exit(1)
+	panic("---")
+	// os.Exit(1)
 }
 
 func (fc *FileCompiler) throw(msg string) {

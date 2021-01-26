@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-var allFileCompilers map[string]*FileCompiler
+var allFileCompilers = map[string]*FileCompiler{}
 
 func (fc *FileCompiler) handleImport() {
 
@@ -89,14 +89,17 @@ func (fc *FileCompiler) handleImport() {
 		// Check if imports exist
 		for typeName, typeAlias := range imports {
 
-			if nfc.typeExists(typeName) {
-				nfc.throwAtLine("Cannot import, class/struct not found: " + typeName)
+			if !nfc.typeExists(typeName) {
+				fc.throwAtLine("Class/Struct " + typeName + " not found in: " + from)
 			}
 
 			if fc.typeExists(typeAlias) {
 				fc.throwAtLine("Cannot import, name already in use: " + typeAlias)
 			}
 
+			scope := fc.scopes[fc.scopeIndex]
+			_type, _ := nfc.getType(typeName)
+			scope.types[typeAlias] = _type.name
 		}
 
 		//
@@ -108,6 +111,8 @@ func (fc *FileCompiler) handleImport() {
 			nfc.index = 0
 			nfc.col = 0
 			nfc.compile()
+
+			fc.result += nfc.result
 		}
 	}
 

@@ -9,7 +9,6 @@ import (
 
 type VarType struct {
 	name       string
-	toft       string
 	subtype    *VarType
 	props      map[string]*Property
 	nullable   bool
@@ -22,22 +21,6 @@ type VarType struct {
 	isStruct bool
 	isClass  bool
 	isLocal  bool
-}
-
-func (fc *FileCompiler) getTypeOfType(_type string) (string, bool) {
-	i := sort.SearchStrings(basicTypes, _type)
-	if i < len(basicTypes) && basicTypes[i] == _type {
-		return "basic", true
-	}
-	_, ok := fc.getStruct(_type)
-	if ok {
-		return "struct", true
-	}
-	_, ok = fc.getClass(_type)
-	if ok {
-		return "class", true
-	}
-	return "", false
 }
 
 func (t *VarType) isCompatible(at *VarType) bool {
@@ -111,7 +94,7 @@ func (t *VarType) displayName() string {
 }
 
 func (fc *FileCompiler) throwTypeError(t *VarType, at *VarType) {
-fc.throwAtLine("Types not compatible: " + t.displayName() + " <-> " + at.displayName() + "")
+	fc.throwAtLine("Types not compatible: " + t.displayName() + " <-> " + at.displayName() + "")
 }
 
 func createType(name string) *VarType {

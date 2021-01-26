@@ -9,13 +9,9 @@ func (fc *FileCompiler) handleType(isLocal bool, isDefine bool, isStruct bool, i
 		fc.throwAtLine("Name already used as a variable: " + name)
 	}
 
-	var _struct *VarType
-	var _class *VarType
-	if isStruct {
-		_struct, _ = fc.getStruct(name)
-	}
-	if isClass {
-		_class, _ = fc.getClass(name)
+	_type, ok := fc.getType(name)
+	if !ok {
+		fc.throwAtLine("Compiler bug, type not found: " + name)
 	}
 
 	token := fc.getNextToken(false, true)
@@ -49,12 +45,7 @@ func (fc *FileCompiler) handleType(isLocal bool, isDefine bool, isStruct bool, i
 		char := fc.getNextCharacterOnLine()
 		if char == "=" {
 			value, _ := fc.getNextValueToken()
-			if _struct != nil {
-				_struct.props[varName]._default = value
-			}
-			if _class != nil {
-				_class.props[varName]._default = value
-			}
+			_type.props[varName]._default = value
 		}
 
 		token = fc.getNextToken(false, false)
@@ -62,10 +53,10 @@ func (fc *FileCompiler) handleType(isLocal bool, isDefine bool, isStruct bool, i
 
 	// Write result code
 	if isClass && !isDefine {
-		globalName := _class.name
+		globalName := _type.name
 		fc.addSpace()
 		fc.addResult("var " + globalName + " = function(")
-		constructorProp, hasConstructor := _class.props["constructor"]
+		constructorProp, hasConstructor := _type.props["constructor"]
 		if hasConstructor {
 			for i, vtype := range constructorProp.varType.paramTypes {
 				if i > 0 {

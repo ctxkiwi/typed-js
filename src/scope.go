@@ -10,41 +10,18 @@ type Var struct {
 }
 
 type Scope struct {
-	structs    map[string]string
-	classes    map[string]string
+	types      map[string]string
 	vars       map[string]Var
 	returnType *VarType
 }
 
 func (s *Scope) typeExists(name string) bool {
-	_, ok := s.structs[name]
-	if ok {
-		return true
-	}
-	_, ok = s.classes[name]
+	_, ok := s.types[name]
 	if ok {
 		return true
 	}
 	return false
 }
-
-// func (s *Scope) hasStruct(name string) bool {
-// 	for _, str := range s.structs {
-// 		if str == name {
-// 			return true
-// 		}
-// 	}
-// 	return false
-// }
-
-// func (s *Scope) hasClass(name string) bool {
-// 	for _, str := range s.classes {
-// 		if str == name {
-// 			return true
-// 		}
-// 	}
-// 	return false
-// }
 
 func (s *Scope) getVar(name string) (*Var, bool) {
 	result, ok := s.vars[name]
@@ -120,20 +97,20 @@ func (fc *FileCompiler) assignValue() *VarType {
 		// Classes
 		fc.addResult("new ")
 		className := fc.getNextToken(false, true)
-		class, classExists := fc.getClass(className)
-		if !classExists {
+		_type, typeExists := fc.getType(className)
+		if !typeExists || !_type.isClass {
 			fc.throwAtLine("Unknown class: " + className)
 		}
-		fc.addResult(class.name)
-		_type := VarType{
+		fc.addResult(_type.name)
+		rtype := VarType{
 			name:    className,
 			isClass: true,
 		}
-		result = &_type
+		result = &rtype
 		fc.expectToken("(")
 		fc.addResult("(")
 
-		constructorProp, hasConstructor := class.props["constructor"]
+		constructorProp, hasConstructor := _type.props["constructor"]
 		constructorType := constructorProp.varType
 
 		if !hasConstructor {
@@ -417,37 +394,16 @@ func (fc *FileCompiler) assignValue() *VarType {
 			}
 			fc.addResult(propName)
 			// check if struct
-			s, ok := fc.getStruct(result.name)
-			class, foundClass := fc.getClass(result.name)
+			_type, ok := fc.getType(result.name)
 			if ok {
-				prop, ok := s.props[propName]
+				prop, ok := _type.props[propName]
 				if !ok {
-					fc.throwAtLine("Undefined property: " + propName + " on struct: " + result.name)
-				}
-				result = prop.varType
-				result.assignable = true
-			} else if foundClass {
-				prop, ok := class.props[propName]
-				if !ok {
-					fc.throwAtLine("Undefined property: " + propName + " on class: " + result.name)
+					fc.throwAtLine("Undefined property: " + propName + " on: " + result.name)
 				}
 				result = prop.varType
 				result.assignable = true
 			} else {
-				// check if class
-				class, ok := fc.getClass(result.name)
-				if ok {
-					prop, ok := class.props[propName]
-					if !ok {
-						fc.throwAtLine("Undefined property: " + propName + " on class: " + result.name)
-					}
-					result = fc.assignValue()
-					if !prop.varType.isCompatible(result) {
-						fc.throwTypeError(prop.varType, result)
-					}
-				} else {
-					fc.throwAtLine("Cannot load struct/class: " + result.name + " (compiler bug)")
-				}
+				fc.throwAtLine("Cannot load struct/class: " + result.name + " (compiler bug)")
 			}
 		} else {
 			break
