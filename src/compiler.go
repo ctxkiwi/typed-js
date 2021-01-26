@@ -89,10 +89,10 @@ func (c *Compiler) compileCode(name string, code []byte) string {
 
 	fc.createNewScope()
 
-	fmt.Println("Read only mode on")
+	// fmt.Println("Read only mode on")
 	c.readTypes = true
 	fc.compile()
-	fmt.Println("Read only mode off")
+	// fmt.Println("Read only mode off")
 	fc.line = 1
 	fc.index = 0
 	fc.col = 0

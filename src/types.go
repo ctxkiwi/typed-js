@@ -5,10 +5,18 @@ import (
 )
 
 var allTypes = map[string]*VarType{}
-var typeCount = 0
 
-func createNewType(isClass bool) (string, *VarType) {
-	name := "type_" + strconv.Itoa(typeCount)
+func createNewType(isClass bool, prefix string) (string, *VarType) {
+	name := ""
+	typeCount := 1
+	for {
+		name = prefix + "_" + strconv.Itoa(typeCount)
+		_, exists := allTypes[name]
+		if !exists {
+			break
+		}
+		typeCount++
+	}
 	s := VarType{
 		isClass:  isClass,
 		isStruct: !isClass,
@@ -16,7 +24,6 @@ func createNewType(isClass bool) (string, *VarType) {
 	s.name = name
 	s.props = map[string]*Property{}
 	allTypes[name] = &s
-	typeCount++
 	return name, &s
 }
 

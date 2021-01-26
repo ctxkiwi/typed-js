@@ -1,10 +1,8 @@
 
 class Router {
 
-    app: App
-
-    constructor: function(App app) void {
-        this.app = app
+    log: function(string msg) void {
+        console.log(msg)
     }
 
 }

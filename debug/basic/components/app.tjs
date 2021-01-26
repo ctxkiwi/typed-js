@@ -1,9 +1,12 @@
 
+//import Router from "./router"
+
 class App {
 
     loading: bool
 
     constructor: function() void {
+        //Router.log("Hello from App")
     }
 
 }

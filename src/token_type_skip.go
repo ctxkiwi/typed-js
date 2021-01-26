@@ -25,13 +25,13 @@ func (fc *FileCompiler) handleTypeSkip(isLocal bool, isDefine bool, isStruct boo
 
 	scope := fc.scopes[fc.scopeIndex]
 	if isStruct {
-		globalName, s = createNewType(false)
+		globalName, s = createNewType(false, name)
 		s.isLocal = isLocal
 		scope.types[name] = globalName
 	}
 
 	if isClass {
-		globalName, class = createNewType(true)
+		globalName, class = createNewType(true, name)
 		class.isLocal = isLocal
 		scope.types[name] = globalName
 	}
@@ -44,7 +44,7 @@ func (fc *FileCompiler) handleTypeSkip(isLocal bool, isDefine bool, isStruct boo
 		if fc.typeExists(className) {
 			fc.throwAtLine("Struct/class name already in use: " + className)
 		}
-		globalName, class = createNewType(true)
+		globalName, class = createNewType(true, className)
 		scope.types[className] = globalName
 		token = fc.getNextTokenSameLine()
 	}
