@@ -18,8 +18,9 @@ func (fc *FileCompiler) skipFunction() *VarType {
 	}
 	for ntoken != ")" {
 
-		paramName := fc.getNextToken(false, false)
 		ptype := fc.getNextType()
+		paramName := fc.getNextToken(false, false)
+
 		ptype.paramName = paramName
 		_type.paramTypes = append(_type.paramTypes, ptype)
 

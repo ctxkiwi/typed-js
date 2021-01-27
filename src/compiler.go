@@ -68,6 +68,9 @@ func (fc *FileCompiler) addSpace() {
 
 func (c *Compiler) compileCode(name string, code []byte) string {
 
+	defaultCode := []byte("import \"@core/_imports\"\n\n")
+	code = append(defaultCode, code...)
+
 	fc := FileCompiler{
 		name: name,
 
@@ -78,26 +81,34 @@ func (c *Compiler) compileCode(name string, code []byte) string {
 
 		index:     0,
 		col:       0,
-		maxIndex:  len(code) - 1,
+		maxIndex:  0,
 		line:      1,
 		exitScope: false,
 
 		compiled: false,
-		code:     code,
+		code:     []byte{},
 		result:   "",
 	}
 
 	fc.createNewScope()
 
+	// File code
+	fc.code = code
+	fc.reset()
 	// fmt.Println("Read only mode on")
 	c.readTypes = true
 	fc.compile()
 	// fmt.Println("Read only mode off")
+	fc.reset()
+	c.readTypes = false
+	return fc.compile()
+}
+
+func (fc *FileCompiler) reset() {
 	fc.line = 1
 	fc.index = 0
 	fc.col = 0
-	c.readTypes = false
-	return fc.compile()
+	fc.maxIndex = len(fc.code) - 1
 }
 
 func (fc *FileCompiler) compile() string {
@@ -456,7 +467,7 @@ func (fc *FileCompiler) getNextValueToken() (string, string) {
 
 func (fc *FileCompiler) getNextType() *VarType {
 	token := fc.getNextToken(false, true)
-	result := VarType{
+	result := &VarType{
 		name: token,
 	}
 	i := sort.SearchStrings(basicTypes, token)
@@ -487,10 +498,11 @@ func (fc *FileCompiler) getNextType() *VarType {
 			result.returnType = rtype
 		}
 	} else {
-		_, foundType := fc.getType(token)
+		_type, foundType := fc.getType(token)
 		if !foundType {
 			fc.throwAtLine("Unknown type: " + token)
 		}
+		result = _type
 		nchar := fc.readNextChar()
 		if nchar == "<" {
 			fc.expectToken("<")
@@ -512,7 +524,7 @@ func (fc *FileCompiler) getNextType() *VarType {
 		nchar = fc.readNextChar()
 	}
 
-	return &result
+	return result
 }
 
 func (fc *FileCompiler) readNextChar() string {

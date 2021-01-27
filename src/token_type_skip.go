@@ -23,7 +23,7 @@ func (fc *FileCompiler) handleTypeSkip(isLocal bool, isDefine bool, isStruct boo
 	var s *VarType = nil
 	var globalName string
 
-	scope := fc.scopes[fc.scopeIndex]
+	scope := fc.getScope()
 	if isStruct {
 		globalName, s = createNewType(false, name)
 		s.isLocal = isLocal
@@ -91,13 +91,9 @@ func (fc *FileCompiler) handleTypeSkip(isLocal bool, isDefine bool, isStruct boo
 		if isClass && !isDefine && token == "function" {
 			fc.getNextToken(false, true)
 			t := fc.skipFunction()
-			// _typeOfType, _ := fc.getTypeOfType(t.name)
-			// t.toft = _typeOfType
 			prop.varType = t
 		} else {
 			t := fc.getNextType()
-			// _typeOfType, _ := fc.getTypeOfType(t.name)
-			// t.toft = _typeOfType
 			prop.varType = t
 		}
 

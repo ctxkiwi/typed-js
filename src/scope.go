@@ -111,11 +111,12 @@ func (fc *FileCompiler) assignValue() *VarType {
 		fc.addResult("(")
 
 		constructorProp, hasConstructor := _type.props["constructor"]
-		constructorType := constructorProp.varType
 
 		if !hasConstructor {
 			fc.expectToken(")")
 		} else {
+
+			constructorType := constructorProp.varType
 
 			// Get params
 			nextChar := fc.getNextToken(true, true)
@@ -174,9 +175,9 @@ func (fc *FileCompiler) assignValue() *VarType {
 			fc.addResult(")")
 		}
 		for ntoken != ")" {
+			ptype := fc.getNextType()
 			paramName := fc.getNextToken(false, false)
 			fc.addResult(paramName)
-			ptype := fc.getNextType()
 			ptype.paramName = paramName
 			result.paramTypes = append(result.paramTypes, ptype)
 			scope.vars[paramName] = Var{
@@ -394,7 +395,7 @@ func (fc *FileCompiler) assignValue() *VarType {
 			}
 			fc.addResult(propName)
 			// check if struct
-			_type, ok := fc.getType(result.name)
+			_type, ok := allTypes[result.name]
 			if ok {
 				prop, ok := _type.props[propName]
 				if !ok {

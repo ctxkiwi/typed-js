@@ -41,28 +41,58 @@ func (fc *FileCompiler) handleImport() {
 	}
 
 	from := strings.Trim(fc.skipString(token), token) + ".tjs"
-	dir := filepath.Dir(fc.name) + "/"
+	fromBytes := []byte(from)
+	isAsset := false
+	fullpath := ""
+	if string(fromBytes[0]) == "@" {
+		isAsset = true
+		fromBytes = fromBytes[1:]
+		fullpath = from          // with @
+		from = string(fromBytes) // without @
+	} else {
 
-	filepath, err := filepath.Abs(dir + from)
-	if err != nil {
-		fc.throwAtLine("Invalid filepath: " + from)
+		dir := filepath.Dir(fc.name) + "/"
+
+		fp, err := filepath.Abs(dir + from)
+		if err != nil {
+			fc.throwAtLine("Invalid filepath: " + from)
+		}
+		fullpath = fp
+
 	}
 
 	if fc.compiler.readTypes {
-		if !fileExists(filepath) {
-			fc.throwAtLine("File not found: " + from + " (" + filepath + ")")
-		}
 
-		nfc, exists := allFileCompilers[filepath]
+		nfc, exists := allFileCompilers[fullpath]
 		if !exists {
 
-			code, err := ioutil.ReadFile(filepath)
-			if err != nil {
-				fmt.Println("Cant read file: " + filepath)
-				os.Exit(1)
+			code := []byte{}
+			if isAsset {
+
+				_code, err := Asset("src/" + from)
+				if err != nil {
+					fc.throwAtLine("Cannot find import: " + from)
+				}
+				code = []byte(_code)
+
+			} else {
+				if !fileExists(fullpath) {
+					fc.throwAtLine("File not found: " + from + " (" + fullpath + ")")
+				}
+
+				_code, err := ioutil.ReadFile(fullpath)
+				if err != nil {
+					fmt.Println("Cant read file: " + fullpath)
+					os.Exit(1)
+				}
+				code = _code
+
+				defaultCode := []byte("import \"@core/_imports\"\n\n")
+				code = append(defaultCode, code...)
 			}
+
 			nfc = &FileCompiler{
-				name: filepath,
+				name: fullpath,
 
 				compiler: fc.compiler,
 
@@ -82,7 +112,14 @@ func (fc *FileCompiler) handleImport() {
 
 			nfc.createNewScope()
 
-			allFileCompilers[filepath] = nfc
+			scope := fc.getScope()
+			nscope := nfc.getScope()
+
+			for varName, varType := range scope.vars {
+				nscope.vars[varName] = varType
+			}
+
+			allFileCompilers[fullpath] = nfc
 
 			nfc.compile()
 		}
@@ -105,14 +142,23 @@ func (fc *FileCompiler) handleImport() {
 		//
 		return
 	} else {
-		nfc, _ := allFileCompilers[filepath]
+		nfc, _ := allFileCompilers[fullpath]
 		if !nfc.compiled {
 			nfc.line = 1
 			nfc.index = 0
 			nfc.col = 0
 			nfc.compile()
 
+			nfc.compiled = true
+
 			fc.result += nfc.result
+		}
+
+		scope := fc.getScope()
+		nscope := nfc.getScope()
+
+		for varName, varType := range nscope.vars {
+			scope.vars[varName] = varType
 		}
 	}
 

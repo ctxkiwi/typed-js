@@ -61,15 +61,16 @@ func main() {
 	}
 
 	start := time.Now()
-	data, err := Asset("src/core/types.tjs")
-	if err != nil {
-		fmt.Println("Missing assets: @core/types")
-		os.Exit(1)
-	}
-	jscode := compiler.compileCode("src/core/types.tjs", []byte(data))
+	jscode := ""
+	// data, err := Asset("src/core/types.tjs")
+	// if err != nil {
+	// 	fmt.Println("Missing assets: @core/types")
+	// 	os.Exit(1)
+	// }
+	// jscode := compiler.compileCode("src/core/types.tjs", []byte(data))
 
-	data, _ = Asset("src/core/globals.tjs")
-	jscode += compiler.compileCode("src/core/globals.tjs", []byte(data))
+	// data, _ = Asset("src/core/globals.tjs")
+	// jscode += compiler.compileCode("src/core/globals.tjs", []byte(data))
 
 	jscode += "\n(function(){\n\n"
 	jscode += compiler.compileCode(inputFilepath, code)
