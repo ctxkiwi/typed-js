@@ -146,7 +146,7 @@ func (fc *FileCompiler) handleImport() {
 
 			nfc.compiled = true
 
-			fc.result += nfc.result
+			resultOrder = append(resultOrder, nfc)
 		}
 
 		scope := fc.getScope()

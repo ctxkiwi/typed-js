@@ -15,6 +15,8 @@ var operatorChars = []string{"+", "-", "*", "/", "=", "<", ">", "&", "|"}
 
 var exportCounter = 0
 
+var resultOrder = []*FileCompiler{}
+
 type Compiler struct {
 	readTypes bool
 }
@@ -88,52 +90,57 @@ func (c *Compiler) compileCode(name string, code []byte) string {
 	fc.reset()
 	c.readTypes = false
 
-	result := fc.compile()
+	fc.compile()
 
-	// Exports
-	codeBefore := ""
-	codeBefore += "var " + fc.exportVarName + " = "
+	resultOrder = append(resultOrder, fc)
 
-	// Add imports / exports to result
-	codeBefore += "\n(function("
-	count := 0
-	for _, imp := range fc.imports {
-		if count > 0 {
-			codeBefore += ", "
+	result := ""
+	for _, ifc := range resultOrder {
+		// Exports
+		codeBefore := ""
+		codeBefore += "\nvar " + ifc.exportVarName + " = "
+
+		// Add imports / exports to result
+		codeBefore += "(function("
+		count := 0
+		for _, imp := range ifc.imports {
+			if count > 0 {
+				codeBefore += ", "
+			}
+			codeBefore += imp.internalName
+			count++
 		}
-		codeBefore += imp.internalName
-		count++
-	}
-	codeBefore += "){\n\n"
+		codeBefore += "){\n\n"
 
-	// Exports
-	codeAfter := "\nreturn {"
-	count = 0
-	for externName, internName := range fc.exports {
-		if count > 0 {
-			codeAfter += ",\n"
+		// Exports
+		codeAfter := "\nreturn {\n"
+		count = 0
+		for externName, internName := range ifc.exports {
+			if count > 0 {
+				codeAfter += ",\n"
+			}
+			codeAfter += externName
+			codeAfter += ": "
+			codeAfter += internName
+			count++
 		}
-		codeAfter += externName
-		codeAfter += ": "
-		codeAfter += internName
-		count++
-	}
-	codeAfter += "\n};\n"
+		codeAfter += "\n};\n"
 
-	// Imports input
-	codeAfter += "\n})("
-	count = 0
-	for _, imp := range fc.imports {
-		if count > 0 {
-			codeBefore += ", "
+		// Imports input
+		codeAfter += "})("
+		count = 0
+		for _, imp := range ifc.imports {
+			if count > 0 {
+				codeBefore += ", "
+			}
+			codeAfter += imp.fileCompiler.exportVarName
+			codeAfter += "." + imp.externalName
+			count++
 		}
-		codeBefore += imp.fileCompiler.exportVarName
-		codeBefore += "." + imp.externalName
-		count++
-	}
-	codeAfter += ");\n"
+		codeAfter += ");\n"
 
-	result = codeBefore + result + codeAfter
+		result += codeBefore + ifc.result + codeAfter
+	}
 
 	return result
 }
