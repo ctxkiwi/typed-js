@@ -46,11 +46,16 @@ func (fc *FileCompiler) declareVariable(_type *VarType, isDefine bool) {
 		if !_type.isCompatible(rightType) {
 			fc.throwTypeError(_type, rightType)
 		}
-		fc.addResult(";")
+		fc.addResult(";\n")
 	}
 	scope := fc.scopes[fc.scopeIndex]
 	scope.vars[varName] = Var{
 		_type: _type,
+	}
+
+	token := fc.getNextToken(true, false)
+	if token == ";" {
+		token = fc.getNextToken(false, false)
 	}
 }
 
@@ -114,6 +119,7 @@ func (fc *FileCompiler) assignValue() *VarType {
 
 		if !hasConstructor {
 			fc.expectToken(")")
+			fc.addResult(")")
 		} else {
 
 			constructorType := constructorProp.varType
@@ -193,12 +199,17 @@ func (fc *FileCompiler) assignValue() *VarType {
 		result.returnType = rtype
 
 		fc.expectToken("{")
-		fc.addResult("{")
+		fc.addResult("{\n")
+		extraSpace++
+		fc.addSpace()
 		fc.scopes[fc.scopeIndex].returnType = result.returnType
 		fc.compile()
 		if string(fc.code[fc.index-1]) != "}" {
 			fc.throwAtLine("Expected: }")
 		}
+		extraSpace--
+		fc.addResult("\n")
+		fc.addSpace()
 		fc.addResult("}")
 		fc.popScope()
 

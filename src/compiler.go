@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strconv"
 )
 
 var basicTypes = []string{"bool", "number", "string", "array", "object", "func", "any", "T", "void"}
@@ -11,6 +12,8 @@ var structsEqualToClass = []string{"number", "string", "bool", "array", "object"
 var basicValues = []string{"true", "false", "undefined", "null", "[]", "{}"}
 var operators = []string{"+", "-", "*", "/", "==", "===", "<", ">", "<=", ">=", "&&", "||", "++", "--"}
 var operatorChars = []string{"+", "-", "*", "/", "=", "<", ">", "&", "|"}
+
+var exportCounter = 0
 
 type Compiler struct {
 	readTypes bool
@@ -31,6 +34,10 @@ type FileCompiler struct {
 	lastTokenCol int
 	whitespace   string
 	exitScope    bool
+
+	imports       []*Import
+	exports       map[string]string
+	exportVarName string
 
 	compiled     bool
 	code         []byte
@@ -71,6 +78,68 @@ func (c *Compiler) compileCode(name string, code []byte) string {
 	defaultCode := []byte("import \"@core/_imports\"\n\n")
 	code = append(defaultCode, code...)
 
+	fc := c.createNewFileCompiler(name, code)
+	fc.createNewScope()
+
+	// fmt.Println("Read only mode on")
+	c.readTypes = true
+	fc.compile()
+	// fmt.Println("Read only mode off")
+	fc.reset()
+	c.readTypes = false
+
+	result := fc.compile()
+
+	// Exports
+	codeBefore := ""
+	codeBefore += "var " + fc.exportVarName + " = "
+
+	// Add imports / exports to result
+	codeBefore += "\n(function("
+	count := 0
+	for _, imp := range fc.imports {
+		if count > 0 {
+			codeBefore += ", "
+		}
+		codeBefore += imp.internalName
+		count++
+	}
+	codeBefore += "){\n\n"
+
+	// Exports
+	codeAfter := "\nreturn {"
+	count = 0
+	for externName, internName := range fc.exports {
+		if count > 0 {
+			codeAfter += ",\n"
+		}
+		codeAfter += externName
+		codeAfter += ": "
+		codeAfter += internName
+		count++
+	}
+	codeAfter += "\n};\n"
+
+	// Imports input
+	codeAfter += "\n})("
+	count = 0
+	for _, imp := range fc.imports {
+		if count > 0 {
+			codeBefore += ", "
+		}
+		codeBefore += imp.fileCompiler.exportVarName
+		codeBefore += "." + imp.externalName
+		count++
+	}
+	codeAfter += ");\n"
+
+	result = codeBefore + result + codeAfter
+
+	return result
+}
+
+func (c *Compiler) createNewFileCompiler(name string, code []byte) *FileCompiler {
+
 	fc := FileCompiler{
 		name: name,
 
@@ -81,27 +150,22 @@ func (c *Compiler) compileCode(name string, code []byte) string {
 
 		index:     0,
 		col:       0,
-		maxIndex:  0,
+		maxIndex:  len(code) - 1,
 		line:      1,
 		exitScope: false,
 
+		imports: []*Import{},
+		exports: map[string]string{},
+
 		compiled: false,
-		code:     []byte{},
+		code:     code,
 		result:   "",
 	}
 
-	fc.createNewScope()
+	fc.exportVarName = "export_" + strconv.Itoa(exportCounter)
+	exportCounter++
 
-	// File code
-	fc.code = code
-	fc.reset()
-	// fmt.Println("Read only mode on")
-	c.readTypes = true
-	fc.compile()
-	// fmt.Println("Read only mode off")
-	fc.reset()
-	c.readTypes = false
-	return fc.compile()
+	return &fc
 }
 
 func (fc *FileCompiler) reset() {
@@ -172,14 +236,14 @@ func (fc *FileCompiler) getNextToken(readOnly bool, sameLine bool) string {
 				fc.col = 0
 				fc.lastTokenCol = 0
 				fc.whitespace = ""
-				lastChars := ""
-				if len(fc.result) > 1 {
-					lastChars = fc.result[len(fc.result)-2:]
-					if lastChars != "\n\n" {
-						fc.addResult("\n")
-						fc.addSpace()
-					}
-				}
+				// lastChars := ""
+				// if len(fc.result) > 1 {
+				// 	lastChars = fc.result[len(fc.result)-2:]
+				// 	if lastChars != "\n\n" {
+				// 		fc.addResult("\n")
+				// 		fc.addSpace()
+				// 	}
+				// }
 			}
 			if len(word) == 0 {
 				continue
@@ -545,6 +609,11 @@ func (fc *FileCompiler) handleNextWord() {
 
 	token := fc.getNextToken(false, false)
 
+	if token == "" {
+		// End of file
+		return
+	}
+
 	if token == "#" {
 		word := fc.getNextToken(false, false)
 		fc.handleMacro(word)
@@ -606,8 +675,8 @@ func (fc *FileCompiler) handleNextWord() {
 		return
 	}
 
-	if token == "include" {
-		fc.handleInclude()
+	if token == "export" {
+		fc.handleExport()
 		return
 	}
 
@@ -638,6 +707,10 @@ func (fc *FileCompiler) handleNextWord() {
 			if !isDefine {
 				fc.expectToken("=")
 				fc.skipValue()
+				token := fc.getNextToken(true, false)
+				if token == ";" {
+					token = fc.getNextToken(false, false)
+				}
 			}
 			return
 		}

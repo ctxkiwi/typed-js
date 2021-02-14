@@ -10,6 +10,12 @@ import (
 
 var allFileCompilers = map[string]*FileCompiler{}
 
+type Import struct {
+	fileCompiler *FileCompiler
+	internalName string
+	externalName string
+}
+
 func (fc *FileCompiler) handleImport() {
 
 	imports := map[string]string{}
@@ -36,6 +42,7 @@ func (fc *FileCompiler) handleImport() {
 		}
 		token = fc.getNextToken(false, true)
 	}
+
 	if token != "'" && token != "\"" {
 		fc.throwAtLine("Expected a string containing a filepath")
 	}
@@ -58,7 +65,6 @@ func (fc *FileCompiler) handleImport() {
 			fc.throwAtLine("Invalid filepath: " + from)
 		}
 		fullpath = fp
-
 	}
 
 	if fc.compiler.readTypes {
@@ -91,25 +97,7 @@ func (fc *FileCompiler) handleImport() {
 				code = append(defaultCode, code...)
 			}
 
-			nfc = &FileCompiler{
-				name: fullpath,
-
-				compiler: fc.compiler,
-
-				scopes:     []*Scope{},
-				scopeIndex: -1,
-
-				index:     0,
-				col:       0,
-				maxIndex:  len(code) - 1,
-				line:      1,
-				exitScope: false,
-
-				compiled: false,
-				code:     code,
-				result:   "",
-			}
-
+			nfc = fc.compiler.createNewFileCompiler(fullpath, code)
 			nfc.createNewScope()
 
 			scope := fc.getScope()
@@ -126,8 +114,9 @@ func (fc *FileCompiler) handleImport() {
 		// Check if imports exist
 		for typeName, typeAlias := range imports {
 
-			if !nfc.typeExists(typeName) {
-				fc.throwAtLine("Class/Struct " + typeName + " not found in: " + from)
+			_, exists := nfc.exports[typeName]
+			if !exists {
+				fc.throwAtLine("Class/Struct " + typeName + " not found or not exported in: " + from)
 			}
 
 			if fc.typeExists(typeAlias) {
@@ -137,6 +126,12 @@ func (fc *FileCompiler) handleImport() {
 			scope := fc.scopes[fc.scopeIndex]
 			_type, _ := nfc.getType(typeName)
 			scope.types[typeAlias] = _type.name
+
+			fc.imports = append(fc.imports, &Import{
+				fileCompiler: nfc,
+				internalName: typeAlias,
+				externalName: typeName,
+			})
 		}
 
 		//

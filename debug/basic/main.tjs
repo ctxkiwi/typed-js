@@ -1,5 +1,7 @@
 
+//#lib "./libs/vue.js"
+
 import App from "./components/app"
 
-App app = new App()
+App app = new App();
 

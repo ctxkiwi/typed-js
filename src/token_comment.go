@@ -8,10 +8,11 @@ func (fc *FileCompiler) handleComment() {
 		for fc.index <= fc.maxIndex {
 
 			charInt := fc.code[fc.index]
-			// char := string(charInt)
 			fc.index++
 
 			if isNewLine(charInt) {
+				fc.line++
+				fc.col = 0
 				return
 			}
 		}

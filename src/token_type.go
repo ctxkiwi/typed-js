@@ -65,10 +65,10 @@ func (fc *FileCompiler) handleType(isLocal bool, isDefine bool, isStruct bool, i
 				fc.addResult(vtype.paramName)
 			}
 		}
-		fc.addResult(") {\n")
-		extraSpace++
-		fc.addSpace()
 		if hasConstructor {
+			fc.addResult(") {\n")
+			extraSpace++
+			fc.addSpace()
 			fc.addResult("this.constructor = " + functionCode["constructor"] + ";\n")
 			fc.addSpace()
 			fc.addResult("this.constructor(")
@@ -82,7 +82,7 @@ func (fc *FileCompiler) handleType(isLocal bool, isDefine bool, isStruct bool, i
 			extraSpace--
 			fc.addSpace()
 		} else {
-			extraSpace--
+			fc.addResult(") {")
 		}
 		fc.addResult("};\n")
 		fc.addSpace()

@@ -1,7 +1,7 @@
 
 import Router from "./router"
 
-Router router = new Router()
+Router router = new Router();
 
 class App {
 
@@ -11,4 +11,8 @@ class App {
         router.log("Hello from App")
     }
 
+}
+
+export {
+    App: App
 }
