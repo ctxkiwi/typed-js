@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strings"
 	"strconv"
 )
 
@@ -96,6 +97,12 @@ func (c *Compiler) compileCode(name string, code []byte) string {
 
 	result := ""
 	for _, ifc := range resultOrder {
+
+		ifc.result = strings.TrimSpace(ifc.result)
+		if len(ifc.result) == 0 {
+			continue;
+		}
+
 		// Exports
 		codeBefore := ""
 		codeBefore += "\nvar " + ifc.exportVarName + " = "
