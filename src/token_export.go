@@ -18,8 +18,12 @@ func (fc *FileCompiler) handleExport() {
 		valueName := token
 
 		_, isVar := fc.getVar(valueName)
-		if !isVar && !fc.typeExists(valueName) {
+		t, isType := fc.getType(valueName)
+		if !isVar && !isType {
 			fc.throwAtLine("Unknown var/type: " + valueName)
+		}
+		if isType {
+			valueName = t.name
 		}
 
 		fc.exports[varName] = valueName
