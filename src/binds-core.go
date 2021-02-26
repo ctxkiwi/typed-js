@@ -85,7 +85,7 @@ func srcCore_importsTjs() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "src/core/_imports.tjs", size: 45, mode: os.FileMode(420), modTime: time.Unix(1611781140, 0)}
+	info := bindataFileInfo{name: "src/core/_imports.tjs", size: 45, mode: os.FileMode(511), modTime: time.Unix(1614377604, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -105,7 +105,7 @@ func srcCoreGlobalsTjs() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "src/core/globals.tjs", size: 86, mode: os.FileMode(420), modTime: time.Unix(1611779290, 0)}
+	info := bindataFileInfo{name: "src/core/globals.tjs", size: 86, mode: os.FileMode(511), modTime: time.Unix(1614377604, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -125,7 +125,7 @@ func srcCoreTypesTjs() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "src/core/types.tjs", size: 764, mode: os.FileMode(420), modTime: time.Unix(1611008643, 0)}
+	info := bindataFileInfo{name: "src/core/types.tjs", size: 764, mode: os.FileMode(511), modTime: time.Unix(1614377604, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }

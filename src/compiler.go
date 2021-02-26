@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 	"sort"
-	"strings"
 	"strconv"
+	"strings"
 )
 
 var basicTypes = []string{"bool", "number", "string", "array", "object", "func", "any", "T", "void"}
@@ -29,6 +29,7 @@ type FileCompiler struct {
 
 	scopes     []*Scope
 	scopeIndex int
+	exitScope  bool
 
 	index        int
 	maxIndex     int
@@ -36,7 +37,7 @@ type FileCompiler struct {
 	col          int
 	lastTokenCol int
 	whitespace   string
-	exitScope    bool
+	indentLevel  int
 
 	imports       []*Import
 	exports       map[string]string
@@ -64,16 +65,19 @@ func (fc *FileCompiler) addResult(str string) {
 	}
 }
 
-var extraSpace = 0
+var extraSpace = 1
 
 func (fc *FileCompiler) addSpace() {
+	fc.addResult(fc.getSpace())
+}
+func (fc *FileCompiler) getSpace() string {
 	i := -1 - extraSpace
 	result := ""
 	for i < fc.scopeIndex {
 		result += "    "
 		i++
 	}
-	fc.addResult(result)
+	return result
 }
 
 func (c *Compiler) compileCode(name string, code []byte) string {
@@ -105,7 +109,7 @@ func (c *Compiler) compileCode(name string, code []byte) string {
 
 		// Exports
 		codeBefore := ""
-		codeBefore += "\nvar " + ifc.exportVarName + " = "
+		codeBefore += "\n    var " + ifc.exportVarName + " = "
 
 		// Add imports / exports to result
 		codeBefore += "(function("
@@ -117,21 +121,23 @@ func (c *Compiler) compileCode(name string, code []byte) string {
 			codeBefore += imp.internalName
 			count++
 		}
-		codeBefore += "){\n\n"
+		codeBefore += "){\n        "
 
 		// Exports
-		codeAfter := "\nreturn {\n"
+		codeAfter := "\n"
+		codeAfter += "        return {\n"
 		count = 0
 		for externName, internName := range ifc.exports {
 			if count > 0 {
 				codeAfter += ",\n"
 			}
+			codeAfter += "            "
 			codeAfter += externName
 			codeAfter += ": "
 			codeAfter += internName
 			count++
 		}
-		codeAfter += "\n};\n"
+		codeAfter += "\n        };\n    "
 
 		// Imports input
 		codeAfter += "})("

@@ -35,8 +35,10 @@ func (fc *FileCompiler) handleType(isLocal bool, isDefine bool, isStruct bool, i
 
 		if isClass && !isDefine && token == "function" {
 			fc.recordResult()
+			extraSpace--
 			fc.assignValue()
 			functionCode[varName] = fc.getRecording()
+			extraSpace++
 		} else {
 			fc.getNextType()
 		}
