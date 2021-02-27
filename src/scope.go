@@ -47,6 +47,7 @@ func (fc *FileCompiler) declareVariable(_type *VarType, isDefine bool) {
 			fc.throwTypeError(_type, rightType)
 		}
 		fc.addResult(";\n")
+		fc.addSpace()
 	}
 	scope := fc.scopes[fc.scopeIndex]
 	scope.vars[varName] = Var{
@@ -98,6 +99,9 @@ func (fc *FileCompiler) assignValue() *VarType {
 			name: "undefined",
 		}
 		result = &_type
+	} else if token == "true" || token == "false" {
+		fc.addResult(token)
+		result = createType("bool")
 	} else if token == "new" {
 		// Classes
 		fc.addResult("new ")

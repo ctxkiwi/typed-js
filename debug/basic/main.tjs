@@ -5,3 +5,11 @@ import App from "./components/app"
 
 App app = new App();
 
+if (true){
+    console.log("If")
+} else if (1 > 2) {
+    console.log("Else if")
+} else {
+    console.log("Else")
+}
+
