@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"os"
 	"sort"
 	"strings"
 )
@@ -13,6 +15,7 @@ type Scope struct {
 	types      map[string]string
 	vars       map[string]Var
 	returnType *VarType
+	loopType   string
 }
 
 func (s *Scope) typeExists(name string) bool {
@@ -21,6 +24,15 @@ func (s *Scope) typeExists(name string) bool {
 		return true
 	}
 	return false
+}
+
+func (s *Scope) setLoopType(name string) {
+	if name == "while" || name == "for" || name == "switch" {
+		s.loopType = name
+	} else {
+		fmt.Println("Invalid loop type (compiler bug)")
+		os.Exit(1)
+	}
 }
 
 func (s *Scope) getVar(name string) (*Var, bool) {

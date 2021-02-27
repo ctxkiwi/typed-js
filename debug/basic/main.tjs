@@ -13,3 +13,29 @@ if (true){
     console.log("Else")
 }
 
+while (true) {
+    console.log("In a while")
+    break;
+}
+
+do {
+    console.log("In a do while")
+    break;
+} while (true)
+
+var x = "1";
+switch (x) {
+    case "1":
+    break;
+    case "2":
+    default: 
+    break;
+}
+
+for(var i = 0; i < 0; i++) {
+
+}
+var list = [1,2,3];
+for (var item in list){
+
+}
