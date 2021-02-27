@@ -56,7 +56,6 @@ func (fc *FileCompiler) handleType(isLocal bool, isDefine bool, isStruct bool, i
 	// Write result code
 	if isClass && !isDefine {
 		globalName := _type.name
-		fc.addSpace()
 		fc.addResult("var " + globalName + " = function(")
 		constructorProp, hasConstructor := _type.props["constructor"]
 		if hasConstructor {
