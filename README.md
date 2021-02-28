@@ -1,5 +1,7 @@
 
-# Typed-js (WIP)
+# Typed-js (Shutdown)
+
+In the making this package it looked like js development was going to stick with webpack and tools alike. But now with the rise of snowpack and vite, for the first time, js development has been improved instead of being mutilated by bad node.js developers. This brings me hope. After testing vite and seeing that the browser support is doing barely ok, i decided to go their route. Not that their idea is that great.. i mean, u still need strange plugins for no reason and there's still alot of bloat in things like vue. But.. im going to give it a shot. And it saves me the trouble of dealing with mindless github complainers. If they fuck it up again.. ill continue working on this.
 
 ## Full feature list
 
